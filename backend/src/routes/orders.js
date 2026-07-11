@@ -21,7 +21,13 @@ router.post('/', (req, res) => {
   }
 
   const orderItems = [];
-  for (const { productId, quantity } of items) {
+  for (const entry of items) {
+    if (!entry || typeof entry !== 'object') {
+      return res
+        .status(400)
+        .json({ error: 'Each item must be an object with productId and quantity' });
+    }
+    const { productId, quantity } = entry;
     const product = products.find((p) => p.id === Number(productId));
     if (!product) {
       return res.status(400).json({ error: `Product ${productId} not found` });

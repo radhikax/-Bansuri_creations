@@ -44,4 +44,4 @@ Carts are keyed by a client-chosen `cartId` (e.g. a UUID stored in localStorage)
 ## Notes
 
 - Cart and order data live in memory and reset on restart — swap in a database (e.g. SQLite/Postgres) for persistence.
-- CORS is enabled so the Vite dev server (`npm run dev` in the repo root) can call the API directly.
+- CORS allows the Vite dev server origin (`http://localhost:5173`) by default; set `CORS_ORIGINS` (comma-separated) to allow other origins.
