@@ -8,4 +8,6 @@
   Run `npm i` to install the dependencies.
 
   Run `npm run dev` to start the development server.
+
+  The frontend loads products, categories, cart, and orders from the backend API. Start it in a second terminal with `cd backend && npm install && npm run dev` (see `backend/README.md`).
   

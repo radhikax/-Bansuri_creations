@@ -6,7 +6,10 @@ import { Separator } from './ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 import { Product } from '../types';
+import type { Order } from '../lib/api';
 
 export interface CartItem extends Product {
   quantity: number;
@@ -18,11 +21,23 @@ interface CartProps {
   items: CartItem[];
   onUpdateQuantity: (productId: number, quantity: number) => void;
   onRemoveItem: (productId: number) => void;
+  onPlaceOrder: (customer: {
+    name: string;
+    email: string;
+    address: string;
+    phone?: string;
+  }) => Promise<Order>;
 }
 
-export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: CartProps) {
+export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem, onPlaceOrder }: CartProps) {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState('upi');
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [placingOrder, setPlacingOrder] = useState(false);
   
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shipping = subtotal > 0 ? 50 : 0;
@@ -32,11 +47,31 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
     setPaymentDialogOpen(true);
   };
 
-  const handlePayment = () => {
-    // Here you would integrate with actual payment gateway
-    alert(`Payment initiated via ${selectedPayment}. This is a demo - no actual payment will be processed.`);
-    setPaymentDialogOpen(false);
-    onClose();
+  const handlePayment = async () => {
+    setOrderError(null);
+    if (!customerName.trim() || !customerEmail.trim() || !customerAddress.trim()) {
+      setOrderError('Please fill in your name, email, and address.');
+      return;
+    }
+    setPlacingOrder(true);
+    try {
+      const order = await onPlaceOrder({
+        name: customerName.trim(),
+        email: customerEmail.trim(),
+        address: customerAddress.trim(),
+        phone: customerPhone.trim() || undefined,
+      });
+      // Payment gateway integration would go here
+      alert(
+        `Order ${order.id} placed successfully (total \u20B9${order.total}). Payment via ${selectedPayment} is a demo - no actual payment will be processed.`
+      );
+      setPaymentDialogOpen(false);
+      onClose();
+    } catch (err) {
+      setOrderError(err instanceof Error ? err.message : 'Failed to place order');
+    } finally {
+      setPlacingOrder(false);
+    }
   };
 
   const paymentMethods = [
@@ -189,6 +224,48 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
               </p>
             </div>
 
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="customer-name">Name *</Label>
+                  <Input
+                    id="customer-name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Your name"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="customer-phone">Phone</Label>
+                  <Input
+                    id="customer-phone"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Phone number"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="customer-email">Email *</Label>
+                <Input
+                  id="customer-email"
+                  type="email"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="customer-address">Delivery Address *</Label>
+                <Textarea
+                  id="customer-address"
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  placeholder="Full delivery address"
+                />
+              </div>
+            </div>
+
             <RadioGroup value={selectedPayment} onValueChange={setSelectedPayment}>
               {paymentMethods.map((method) => (
                 <div
@@ -213,6 +290,10 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
               ))}
             </RadioGroup>
 
+            {orderError && (
+              <p className="text-sm text-destructive">{orderError}</p>
+            )}
+
             <div className="flex gap-3 pt-4">
               <Button
                 variant="outline"
@@ -221,8 +302,8 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
               >
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={handlePayment}>
-                Pay ₹{total}
+              <Button className="flex-1" onClick={handlePayment} disabled={placingOrder}>
+                {placingOrder ? 'Placing order...' : `Pay ₹${total}`}
               </Button>
             </div>
           </div>

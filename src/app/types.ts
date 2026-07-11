@@ -8,3 +8,10 @@ export interface Product {
   rating: number;
   inStock: boolean;
 }
+
+export interface Category {
+  title: string;
+  description: string;
+  image: string;
+  icon: string;
+}

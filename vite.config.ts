@@ -10,10 +10,21 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      // Forward API requests to the Express backend (backend/, port 3001)
+      '/api': 'http://localhost:3001',
+    },
+  },
   resolve: {
     alias: {
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
+      // Resolve Figma Make asset imports to local files in src/assets
+      'figma:asset/933b21dd0e7f43328405b2f83783e6907d3d0236.png': path.resolve(
+        __dirname,
+        './src/assets/933b21dd0e7f43328405b2f83783e6907d3d0236.png'
+      ),
     },
   },
 })
