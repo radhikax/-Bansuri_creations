@@ -24,5 +24,10 @@ export async function createRazorpayOrder(amountInRupees: number, receipt: strin
 
 export function verifyWebhookSignature(rawBody: string, signature: string, secret: string): boolean {
   const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-  return expected === signature;
+  const expectedBuffer = Buffer.from(expected, 'utf8');
+  const signatureBuffer = Buffer.from(signature, 'utf8');
+  if (expectedBuffer.length !== signatureBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(expectedBuffer, signatureBuffer);
 }
