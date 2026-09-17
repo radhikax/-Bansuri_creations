@@ -9,6 +9,7 @@ import { adminAuthRouter } from './routes/admin/auth.routes';
 import { adminProductsRouter } from './routes/admin/products.routes';
 import { adminCategoriesRouter } from './routes/admin/categories.routes';
 import { adminOrdersRouter } from './routes/admin/orders.routes';
+import { adminSettingsRouter } from './routes/admin/settings.routes';
 
 export const app = express();
 
@@ -30,5 +31,6 @@ app.use('/api/admin', adminAuthRouter);
 app.use('/api/admin/products', adminProductsRouter);
 app.use('/api/admin/categories', adminCategoriesRouter);
 app.use('/api/admin/orders', adminOrdersRouter);
+app.use('/api/admin/settings', adminSettingsRouter);
 
 export default app;
