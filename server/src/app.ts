@@ -7,6 +7,7 @@ import { productsRouter } from './routes/products.routes';
 import { ordersRouter } from './routes/orders.routes';
 import { adminAuthRouter } from './routes/admin/auth.routes';
 import { adminProductsRouter } from './routes/admin/products.routes';
+import { adminCategoriesRouter } from './routes/admin/categories.routes';
 
 export const app = express();
 
@@ -26,5 +27,6 @@ app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/admin', adminAuthRouter);
 app.use('/api/admin/products', adminProductsRouter);
+app.use('/api/admin/categories', adminCategoriesRouter);
 
 export default app;
