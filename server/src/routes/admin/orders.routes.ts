@@ -32,8 +32,14 @@ adminOrdersRouter.put('/:id/status', async (req, res) => {
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.order.update({ where: { id: order.id }, data: { status: parsed.data.status } });
-    if (parsed.data.status === 'CANCELLED' && order.status !== 'CANCELLED') {
+    const claimed = await tx.order.updateMany({
+      where: { id: order.id, status: { not: parsed.data.status } },
+      data: { status: parsed.data.status },
+    });
+    if (claimed.count === 0) {
+      return;
+    }
+    if (parsed.data.status === 'CANCELLED') {
       for (const item of order.items) {
         await tx.productVariant.update({
           where: { id: item.productVariantId },
