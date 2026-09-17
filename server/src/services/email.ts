@@ -17,14 +17,23 @@ export interface OrderEmailData {
   items: { productNameSnapshot: string; variantLabelSnapshot: string; quantity: number; unitPrice: number }[];
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderOrderEmailHtml(data: OrderEmailData): string {
   const rows = data.items
     .map(
       (item) =>
-        `<tr><td>${item.productNameSnapshot} (${item.variantLabelSnapshot})</td><td>${item.quantity}</td><td>Rs. ${item.unitPrice}</td></tr>`
+        `<tr><td>${escapeHtml(item.productNameSnapshot)} (${escapeHtml(item.variantLabelSnapshot)})</td><td>${item.quantity}</td><td>Rs. ${item.unitPrice}</td></tr>`
     )
     .join('');
-  return `<h2>Order ${data.orderNumber}</h2><p>${data.customerName}</p><table>${rows}</table><p>Total: Rs. ${data.total}</p>`;
+  return `<h2>Order ${data.orderNumber}</h2><p>${escapeHtml(data.customerName)}</p><table>${rows}</table><p>Total: Rs. ${data.total}</p>`;
 }
 
 export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<void> {
