@@ -4,6 +4,7 @@ import { prisma } from '../db';
 import { validateStock, computeOrderTotals, resolveUnitPrice, OrderValidationError } from '../services/pricing';
 import { generateOrderNumber } from '../services/orderNumber';
 import { createRazorpayOrder } from '../services/razorpay';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 export const ordersRouter = Router();
 
@@ -18,7 +19,7 @@ const checkoutSchema = z.object({
   items: z.array(z.object({ variantId: z.string(), quantity: z.number().int().positive() })).min(1),
 });
 
-ordersRouter.post('/', async (req, res) => {
+ordersRouter.post('/', asyncHandler(async (req, res) => {
   const parsed = checkoutSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid order payload', details: parsed.error.flatten() });
@@ -91,9 +92,9 @@ ordersRouter.post('/', async (req, res) => {
     }
     throw err;
   }
-});
+}));
 
-ordersRouter.get('/:orderNumber', async (req, res) => {
+ordersRouter.get('/:orderNumber', asyncHandler(async (req, res) => {
   const order = await prisma.order.findUnique({
     where: { orderNumber: req.params.orderNumber },
     include: { items: true },
@@ -102,4 +103,4 @@ ordersRouter.get('/:orderNumber', async (req, res) => {
     return res.status(404).json({ error: 'Order not found' });
   }
   res.json(order);
-});
+}));

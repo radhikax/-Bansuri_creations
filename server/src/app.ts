@@ -33,4 +33,11 @@ app.use('/api/admin/categories', adminCategoriesRouter);
 app.use('/api/admin/orders', adminOrdersRouter);
 app.use('/api/admin/settings', adminSettingsRouter);
 
+// Terminal error handler: anything forwarded via next(err) (including rejections
+// caught by asyncHandler) lands here instead of crashing the process.
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 export default app;

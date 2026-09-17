@@ -2,17 +2,18 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../db';
 import { requireAdminAuth } from '../../middleware/adminAuth';
+import { asyncHandler } from '../../middleware/asyncHandler';
 
 export const adminProductsRouter = Router();
 adminProductsRouter.use(requireAdminAuth);
 
-adminProductsRouter.get('/', async (_req, res) => {
+adminProductsRouter.get('/', asyncHandler(async (_req, res) => {
   const products = await prisma.product.findMany({
     include: { variants: true, category: true },
     orderBy: { name: 'asc' },
   });
   res.json(products);
-});
+}));
 
 const variantSchema = z.object({
   label: z.string().min(1),
@@ -32,7 +33,7 @@ const createProductSchema = z.object({
   variants: z.array(variantSchema).min(1),
 });
 
-adminProductsRouter.post('/', async (req, res) => {
+adminProductsRouter.post('/', asyncHandler(async (req, res) => {
   const parsed = createProductSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid product payload', details: parsed.error.flatten() });
@@ -54,7 +55,7 @@ adminProductsRouter.post('/', async (req, res) => {
   });
 
   res.status(201).json(product);
-});
+}));
 
 const updateProductSchema = z.object({
   name: z.string().min(1).optional(),
@@ -66,7 +67,7 @@ const updateProductSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-adminProductsRouter.put('/:id', async (req, res) => {
+adminProductsRouter.put('/:id', asyncHandler(async (req, res) => {
   const parsed = updateProductSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid product payload', details: parsed.error.flatten() });
@@ -74,11 +75,11 @@ adminProductsRouter.put('/:id', async (req, res) => {
 
   const product = await prisma.product.update({ where: { id: req.params.id }, data: parsed.data });
   res.json(product);
-});
+}));
 
 const upsertVariantSchema = variantSchema.extend({ id: z.string().optional() });
 
-adminProductsRouter.put('/:id/variants/:variantId', async (req, res) => {
+adminProductsRouter.put('/:id/variants/:variantId', asyncHandler(async (req, res) => {
   const parsed = upsertVariantSchema.safeParse({ ...req.body, id: req.params.variantId });
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid variant payload', details: parsed.error.flatten() });
@@ -94,4 +95,4 @@ adminProductsRouter.put('/:id/variants/:variantId', async (req, res) => {
     },
   });
   res.json(variant);
-});
+}));
