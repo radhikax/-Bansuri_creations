@@ -79,3 +79,50 @@ describe('POST /api/orders', () => {
     await prisma.$disconnect();
   });
 });
+
+describe('GET /api/orders/:orderNumber', () => {
+  beforeEach(async () => {
+    await resetDb();
+    await seedDatabase(prisma);
+  });
+
+  it('returns the order and its items', async () => {
+    const variant = await prisma.productVariant.findFirstOrThrow({ where: { sku: 'DSD-001' } });
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: 'ORD-LOOKUP1',
+        customerName: 'Test Customer',
+        customerPhone: '9999999999',
+        customerEmail: 'customer@example.com',
+        addressStreet: 'x',
+        addressCity: 'x',
+        addressState: 'x',
+        addressPincode: 'x',
+        subtotal: 499,
+        shippingFee: 50,
+        total: 549,
+        items: {
+          create: [
+            {
+              productVariantId: variant.id,
+              productNameSnapshot: 'Diwali Special Diyas Set',
+              variantLabelSnapshot: 'Default',
+              unitPrice: 499,
+              quantity: 1,
+            },
+          ],
+        },
+      },
+    });
+
+    const res = await request(app).get(`/api/orders/${order.orderNumber}`);
+    expect(res.status).toBe(200);
+    expect(res.body.orderNumber).toBe('ORD-LOOKUP1');
+    expect(res.body.items).toHaveLength(1);
+  });
+
+  it('returns 404 for an unknown order number', async () => {
+    const res = await request(app).get('/api/orders/ORD-DOESNOTEXIST');
+    expect(res.status).toBe(404);
+  });
+});

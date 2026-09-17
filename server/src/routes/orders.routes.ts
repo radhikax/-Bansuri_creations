@@ -92,3 +92,14 @@ ordersRouter.post('/', async (req, res) => {
     throw err;
   }
 });
+
+ordersRouter.get('/:orderNumber', async (req, res) => {
+  const order = await prisma.order.findUnique({
+    where: { orderNumber: req.params.orderNumber },
+    include: { items: true },
+  });
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+  res.json(order);
+});
