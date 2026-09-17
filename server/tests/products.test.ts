@@ -36,3 +36,28 @@ describe('GET /api/products', () => {
     await prisma.$disconnect();
   });
 });
+
+describe('GET /api/products/:slug', () => {
+  beforeEach(async () => {
+    await prisma.orderItem.deleteMany();
+    await prisma.order.deleteMany();
+    await prisma.productVariant.deleteMany();
+    await prisma.product.deleteMany();
+    await prisma.category.deleteMany();
+    await prisma.adminUser.deleteMany();
+    await prisma.storeSettings.deleteMany();
+    await seedDatabase(prisma);
+  });
+
+  it('returns a single product by slug', async () => {
+    const res = await request(app).get('/api/products/kanha-ji-dress');
+    expect(res.status).toBe(200);
+    expect(res.body.name).toBe('Kanha Ji Dress');
+    expect(res.body.variants).toHaveLength(3);
+  });
+
+  it('returns 404 for an unknown slug', async () => {
+    const res = await request(app).get('/api/products/does-not-exist');
+    expect(res.status).toBe(404);
+  });
+});
