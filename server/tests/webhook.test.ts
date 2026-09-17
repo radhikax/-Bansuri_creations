@@ -92,6 +92,66 @@ describe('POST /api/orders/razorpay-webhook', () => {
     expect(sendAdminNewOrderEmailMock).toHaveBeenCalledTimes(1);
   });
 
+  it('is idempotent when the same signed payload is delivered twice', async () => {
+    const variant = await prisma.productVariant.findFirstOrThrow({ where: { sku: 'DSD-001' } });
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: 'ORD-WEBHOOK2',
+        customerName: 'Test Customer',
+        customerPhone: '9999999999',
+        customerEmail: 'customer@example.com',
+        addressStreet: 'x',
+        addressCity: 'x',
+        addressState: 'x',
+        addressPincode: 'x',
+        subtotal: 998,
+        shippingFee: 50,
+        total: 1048,
+        razorpayOrderId: 'order_webhook_dup_test',
+        items: {
+          create: [
+            {
+              productVariantId: variant.id,
+              productNameSnapshot: 'Diwali Special Diyas Set',
+              variantLabelSnapshot: 'Default',
+              unitPrice: 499,
+              quantity: 2,
+            },
+          ],
+        },
+      },
+    });
+
+    const payload = JSON.stringify({
+      event: 'payment.captured',
+      payload: { payment: { entity: { id: 'pay_dup_test', order_id: 'order_webhook_dup_test' } } },
+    });
+    const signature = sign(payload);
+
+    const firstRes = await request(app)
+      .post('/api/orders/razorpay-webhook')
+      .set('Content-Type', 'application/json')
+      .set('x-razorpay-signature', signature)
+      .send(payload);
+    const secondRes = await request(app)
+      .post('/api/orders/razorpay-webhook')
+      .set('Content-Type', 'application/json')
+      .set('x-razorpay-signature', signature)
+      .send(payload);
+
+    expect(firstRes.status).toBe(200);
+    expect(secondRes.status).toBe(200);
+
+    const updated = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+    expect(updated.status).toBe('PAID');
+
+    const updatedVariant = await prisma.productVariant.findUniqueOrThrow({ where: { id: variant.id } });
+    expect(updatedVariant.stock).toBe(38); // seeded at 40, minus 2 exactly once, not 36
+
+    expect(sendOrderConfirmationEmailMock).toHaveBeenCalledTimes(1);
+    expect(sendAdminNewOrderEmailMock).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects an invalid signature without changing order state', async () => {
     const payload = JSON.stringify({ event: 'payment.captured', payload: { payment: { entity: { id: 'x', order_id: 'y' } } } });
 
