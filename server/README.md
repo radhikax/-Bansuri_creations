@@ -41,3 +41,28 @@ blocks, so they can be run repeatedly without manual cleanup.
 6. Schedule `node dist/jobs/cancelAbandonedOrders.js` to run hourly using
    the hosting platform's cron/scheduled-job feature (Render Cron Jobs or
    Railway Cron), pointed at the production environment variables.
+
+## Known limitations for cross-origin frontend deployment
+
+If the admin frontend ends up deployed on a different origin from this API
+(the topology this deployment section sets up via `FRONTEND_ORIGIN` +
+CORS `credentials: true`), two things need to be resolved before the admin
+panel will actually work, before wiring up that frontend:
+
+- The `admin_session` cookie is currently set with `sameSite: 'lax'`
+  (`src/routes/admin/auth.routes.ts`). Browsers do not attach `Lax` cookies
+  to cross-origin `fetch`/XHR requests, only to top-level navigations — so
+  a cross-origin admin frontend calling this API with
+  `credentials: 'include'` will get a correct login response but no cookie
+  on subsequent requests, and every admin route will 401. This needs
+  `sameSite: 'none'` + `secure: true` (or a same-origin/proxied topology)
+  once the real deployment shape is decided.
+- Express 4 (used here) does not forward a rejected promise from an `async`
+  route handler to error-handling middleware. Most routes have no
+  try/catch, so an unexpected failure (a Prisma error, a Razorpay/Resend
+  outage) can hang the request or crash the process instead of returning a
+  clean 500. The Razorpay webhook handler was hardened against this; the
+  rest of the routes were not.
+
+Neither is a regression from anything already built — both are open
+follow-ups for whoever picks up the frontend-integration plan.
