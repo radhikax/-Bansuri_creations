@@ -1,0 +1,39 @@
+import { useEffect, useState } from 'react';
+
+interface ApiDataState<T> {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export function useApiData<T>(fetcher: () => Promise<T>): ApiDataState<T> {
+  const [state, setState] = useState<ApiDataState<T>>({
+    data: null,
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetcher()
+      .then((data) => {
+        if (!cancelled) {
+          setState({ data, loading: false, error: null });
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Unknown error';
+          setState({ data: null, loading: false, error: message });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return state;
+}
