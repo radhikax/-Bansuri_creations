@@ -6,18 +6,16 @@ interface CategoryCardProps {
   description: string;
   image: string;
   icon: string;
+  slug: string;
 }
 
-export function CategoryCard({ title, description, image, icon }: CategoryCardProps) {
-  // Convert category title to URL-friendly slug
-  const categorySlug = title.toLowerCase().replace(/\s+/g, '-');
-  
+export function CategoryCard({ title, description, image, icon, slug }: CategoryCardProps) {
   return (
-    <Link to={`/category/${categorySlug}`}>
+    <Link to={`/category/${slug}`}>
       <Card className="overflow-hidden group cursor-pointer hover:shadow-lg transition-shadow">
         <div className="relative h-64 overflow-hidden">
-          <img 
-            src={image} 
+          <img
+            src={image}
             alt={title}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           />

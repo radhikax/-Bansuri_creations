@@ -90,6 +90,7 @@ export default function App() {
                 element={
                   <CategoryPage
                     products={products}
+                    categories={categories}
                     onAddToCart={handleAddToCart}
                   />
                 }

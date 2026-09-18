@@ -1,25 +1,19 @@
 import { useParams } from 'react-router-dom';
 import { ProductCard } from '../components/ProductCard';
 import { Product } from '../types';
+import { AdaptedCategory } from '../lib/adapters';
 
 interface CategoryPageProps {
   products: Product[];
+  categories: AdaptedCategory[];
   onAddToCart: (product: Product) => void;
 }
 
-export function CategoryPage({ products, onAddToCart }: CategoryPageProps) {
-  const { category } = useParams<{ category: string }>();
-  
-  // Convert URL parameter to display name
-  const categoryMap: Record<string, string> = {
-    'wedding-packing': 'Wedding Packing',
-    'festive-decoration': 'Festive Decoration',
-    'diwali-decor': 'Diwali Decor',
-    'kanha-dresses': 'Kanha Dresses',
-    'customized-gifting': 'Customized Gifting',
-  };
+export function CategoryPage({ products, categories, onAddToCart }: CategoryPageProps) {
+  const { category: categorySlug } = useParams<{ category: string }>();
 
-  const categoryName = category ? categoryMap[category] || '' : '';
+  const matchedCategory = categories.find((c) => c.slug === categorySlug);
+  const categoryName = matchedCategory?.title ?? '';
   const filteredProducts = products.filter((p) => p.category === categoryName);
 
   return (
@@ -33,19 +27,17 @@ export function CategoryPage({ products, onAddToCart }: CategoryPageProps) {
         {filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
+              <ProductCard
+                key={product.id}
                 product={product}
                 onAddToCart={onAddToCart}
               />
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <p className="text-muted-foreground text-lg">
-              No products found in this category.
-            </p>
-          </div>
+          <p className="text-center text-muted-foreground py-16">
+            No products found in this category.
+          </p>
         )}
       </div>
     </div>

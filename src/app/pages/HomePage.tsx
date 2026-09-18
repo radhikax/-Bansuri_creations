@@ -2,15 +2,11 @@ import { Hero } from '../components/Hero';
 import { CategoryCard } from '../components/CategoryCard';
 import { ProductCard } from '../components/ProductCard';
 import { Product } from '../types';
+import { AdaptedCategory } from '../lib/adapters';
 
 interface HomePageProps {
   products: Product[];
-  categories: Array<{
-    title: string;
-    description: string;
-    image: string;
-    icon: string;
-  }>;
+  categories: AdaptedCategory[];
   onAddToCart: (product: Product) => void;
 }
 
@@ -29,11 +25,12 @@ export function HomePage({ products, categories, onAddToCart }: HomePageProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {categories.map((category) => (
             <CategoryCard
-              key={category.title}
+              key={category.slug}
               title={category.title}
               description={category.description}
               image={category.image}
               icon={category.icon}
+              slug={category.slug}
             />
           ))}
         </div>
