@@ -37,7 +37,11 @@ app.use('/api/admin/settings', adminSettingsRouter);
 // caught by asyncHandler) lands here instead of crashing the process.
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
-  res.status(500).json({ error: 'Internal server error' });
+  const status = (err as { status?: number; statusCode?: number }).status
+    ?? (err as { status?: number; statusCode?: number }).statusCode
+    ?? 500;
+  const message = status >= 500 ? 'Internal server error' : err.message;
+  res.status(status).json({ error: message });
 });
 
 export default app;

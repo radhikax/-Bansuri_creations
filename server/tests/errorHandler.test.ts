@@ -45,6 +45,19 @@ describe('global error handling', () => {
     errorSpy.mockRestore();
   });
 
+  it('preserves the 4xx status body-parser assigns instead of downgrading to 500', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Content-Type', 'application/json')
+      .send('{not valid json');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).not.toBe('Internal server error');
+    errorSpy.mockRestore();
+  });
+
   afterAll(async () => {
     await prisma.$disconnect();
   });
