@@ -2,7 +2,7 @@ import { ShoppingCart } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Link } from 'react-router-dom';
-import logo from 'figma:asset/933b21dd0e7f43328405b2f83783e6907d3d0236.png';
+import logo from '../../assets/933b21dd0e7f43328405b2f83783e6907d3d0236.png';
 
 interface HeaderProps {
   cartItemsCount: number;

@@ -1,7 +1,7 @@
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react';
 import { Separator } from './ui/separator';
 import { Link } from 'react-router-dom';
-import logo from 'figma:asset/933b21dd0e7f43328405b2f83783e6907d3d0236.png';
+import logo from '../../assets/933b21dd0e7f43328405b2f83783e6907d3d0236.png';
 
 export function Footer() {
   return (
