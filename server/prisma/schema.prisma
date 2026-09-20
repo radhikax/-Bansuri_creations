@@ -29,6 +29,7 @@ model Product {
   basePrice     Int
   originalPrice Int?
   imageUrl      String
+  images        String[]         @default([])
   rating        Float            @default(0)
   isActive      Boolean          @default(true)
   variants      ProductVariant[]

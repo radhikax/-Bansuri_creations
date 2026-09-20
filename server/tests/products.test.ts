@@ -19,14 +19,14 @@ describe('GET /api/products', () => {
   it('returns all active products with their variants', async () => {
     const res = await request(app).get('/api/products');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(14);
+    expect(res.body).toHaveLength(17);
     expect(res.body[0]).toHaveProperty('variants');
   });
 
   it('filters by category slug', async () => {
     const res = await request(app).get('/api/products?category=diwali-decor');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(4);
+    expect(res.body).toHaveLength(7);
     for (const product of res.body) {
       expect(product.category.slug).toBe('diwali-decor');
     }
