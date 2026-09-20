@@ -19,7 +19,7 @@ export function CategoryCard({ title, description, image, icon, slug }: Category
             alt={title}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
             <div className="text-3xl mb-2">{icon}</div>
             <h3 className="text-2xl mb-2">{title}</h3>

@@ -1,8 +1,10 @@
 import { ShoppingCart } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Link } from 'react-router-dom';
 import logo from '../../assets/933b21dd0e7f43328405b2f83783e6907d3d0236.png';
+import { CART_ICON_ATTR } from '../lib/flyToCart';
 
 interface HeaderProps {
   cartItemsCount: number;
@@ -43,12 +45,20 @@ export function Header({ cartItemsCount, onCartClick }: HeaderProps) {
           </nav>
 
           {/* Cart Button */}
-          <Button variant="outline" className="relative" onClick={onCartClick}>
+          <Button variant="outline" className="relative" onClick={onCartClick} {...{ [CART_ICON_ATTR]: true }}>
             <ShoppingCart className="h-5 w-5" />
             {cartItemsCount > 0 && (
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-primary">
-                {cartItemsCount}
-              </Badge>
+              <motion.div
+                key={cartItemsCount}
+                initial={{ scale: 1.5 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                className="absolute -top-2 -right-2"
+              >
+                <Badge className="h-5 w-5 flex items-center justify-center p-0 bg-primary">
+                  {cartItemsCount}
+                </Badge>
+              </motion.div>
             )}
           </Button>
         </div>

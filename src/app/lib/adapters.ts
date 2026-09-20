@@ -26,12 +26,20 @@ export function adaptProduct(api: ApiProduct): Product {
 
   return {
     id: api.id,
+    slug: api.slug,
     name: api.name,
     price,
     originalPrice: api.originalPrice ?? undefined,
     image: api.imageUrl,
+    images: api.images.length > 0 ? api.images : [api.imageUrl],
     category: api.category.name,
     rating: api.rating,
     inStock,
+    variants: api.variants.map((v) => ({
+      id: v.id,
+      label: v.label,
+      price: v.price ?? api.basePrice,
+      stock: v.stock,
+    })),
   };
 }

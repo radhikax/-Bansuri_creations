@@ -30,6 +30,7 @@ export interface ApiProduct {
   basePrice: number;
   originalPrice: number | null;
   imageUrl: string;
+  images: string[];
   rating: number;
   isActive: boolean;
   variants: ApiProductVariant[];
@@ -54,4 +55,8 @@ export function getCategories(): Promise<ApiCategory[]> {
 export function getProducts(categorySlug?: string): Promise<ApiProduct[]> {
   const query = categorySlug ? `?category=${encodeURIComponent(categorySlug)}` : '';
   return fetchJson<ApiProduct[]>(`/api/products${query}`);
+}
+
+export function getProductBySlug(slug: string): Promise<ApiProduct> {
+  return fetchJson<ApiProduct>(`/api/products/${encodeURIComponent(slug)}`);
 }

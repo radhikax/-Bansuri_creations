@@ -1,14 +1,39 @@
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useState, type ReactNode } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Header } from './components/Header';
 import { Cart, type CartItem } from './components/Cart';
 import { Footer } from './components/Footer';
+import { ProductCardSkeleton } from './components/ProductCardSkeleton';
 import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './pages/CategoryPage';
+import { ProductDetailPage } from './pages/ProductDetailPage';
 import { Product } from './types';
 import { getCategories, getProducts } from './lib/api';
 import { useApiData } from './lib/useApiData';
 import { adaptCategory, adaptProduct } from './lib/adapters';
+
+function AnimatedRoutes({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const shouldReduceMotion = useReducedMotion();
+
+  if (shouldReduceMotion) {
+    return <Routes location={location}>{children}</Routes>;
+  }
+
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, scale: 0.985 }}
+        animate={{ opacity: 1, scale: 1, transition: { duration: 0.22, ease: 'easeOut' } }}
+        exit={{ opacity: 0, scale: 0.985, transition: { duration: 0.16, ease: 'easeIn' } }}
+      >
+        <Routes location={location}>{children}</Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
 
 export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -65,7 +90,7 @@ export default function App() {
             <div className="container mx-auto px-4 py-16">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="h-80 rounded bg-muted animate-pulse" />
+                  <ProductCardSkeleton key={i} />
                 ))}
               </div>
             </div>
@@ -74,7 +99,7 @@ export default function App() {
               <p className="text-lg">Couldn't load products, please try again later.</p>
             </div>
           ) : (
-            <Routes>
+            <AnimatedRoutes>
               <Route
                 path="/"
                 element={
@@ -95,7 +120,16 @@ export default function App() {
                   />
                 }
               />
-            </Routes>
+              <Route
+                path="/product/:slug"
+                element={
+                  <ProductDetailPage
+                    products={products}
+                    onAddToCart={handleAddToCart}
+                  />
+                }
+              />
+            </AnimatedRoutes>
           )}
         </main>
 

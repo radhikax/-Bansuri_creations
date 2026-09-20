@@ -2,28 +2,36 @@
 
 :root {
   --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
+  --background: #faf5ea;
+  --foreground: #3a2c1e;
   --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --card-foreground: #3a2c1e;
+  --popover: #ffffff;
+  --popover-foreground: #3a2c1e;
   --primary: #7c1d31;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
+  --primary-foreground: #f2e9d8;
+  --secondary: #f2e9d8;
+  --secondary-foreground: #3a2c1e;
+  --muted: #f0e6d3;
+  --muted-foreground: #8a7860;
+  --accent: #f2e9d8;
+  --accent-foreground: #3a2c1e;
+  --accent-gold: #c2a066;
+  --accent-gold-foreground: #3a2c1e;
+  --accent-rose: #dda9b6;
+  --accent-rose-foreground: #5a2233;
+  --accent-sage: #8fa07f;
+  --accent-sage-foreground: #ffffff;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
+  --border: rgba(124, 29, 49, 0.12);
   --input: transparent;
-  --input-background: #f3f3f5;
+  --input-background: #f2e9d8;
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
+  --font-serif: 'Cormorant Garamond', serif;
+  --font-sans: 'Inter', sans-serif;
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -93,6 +101,14 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-gold: var(--accent-gold);
+  --color-accent-gold-foreground: var(--accent-gold-foreground);
+  --color-accent-rose: var(--accent-rose);
+  --color-accent-rose-foreground: var(--accent-rose-foreground);
+  --color-accent-sage: var(--accent-sage);
+  --color-accent-sage-foreground: var(--accent-sage-foreground);
+  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -126,6 +142,7 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
   }
 
   /**
@@ -138,12 +155,14 @@
   }
 
   h1 {
+    font-family: var(--font-serif);
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   h2 {
+    font-family: var(--font-serif);
     font-size: var(--text-xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
@@ -177,5 +196,32 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--muted);
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
   }
 }
