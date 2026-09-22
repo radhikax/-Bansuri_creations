@@ -82,19 +82,15 @@ describe('POST /api/orders edge cases', () => {
     expect(await prisma.order.count()).toBe(0);
   });
 
-  // KNOWN GAP: checkout never checks product.isActive, so a deactivated product can still be
-  // ordered by posting its variant id directly. it.fails keeps the suite green while the gap
-  // exists and will fail (prompting removal of `.fails`) once checkout rejects inactive products.
-  it.fails('rejects an inactive product with 409', async () => {
+  it('rejects an inactive product with 409 and creates no order', async () => {
     const variant = await prisma.productVariant.findFirstOrThrow({ where: { sku: 'DSD-001' } });
     await prisma.product.update({ where: { id: variant.productId }, data: { isActive: false } });
     const res = await request(app).post('/api/orders').send({ ...customer, items: [{ variantId: variant.id, quantity: 1 }] });
     expect(res.status).toBe(409);
+    expect(await prisma.order.count()).toBe(0);
   });
 
-  // KNOWN GAP: stock is validated per line, not summed per variant, so repeating a variant
-  // across lines can exceed available stock.
-  it.fails('rejects the same variant repeated across lines when the sum exceeds stock', async () => {
+  it('rejects the same variant repeated across lines when the sum exceeds stock', async () => {
     const variant = await prisma.productVariant.findFirstOrThrow({ where: { sku: 'DSD-001' } });
     const half = Math.floor(variant.stock / 2) + 1;
     const res = await request(app).post('/api/orders').send({
@@ -102,6 +98,18 @@ describe('POST /api/orders edge cases', () => {
       items: [{ variantId: variant.id, quantity: half }, { variantId: variant.id, quantity: half }],
     });
     expect(res.status).toBe(409);
+    expect(await prisma.order.count()).toBe(0);
+  });
+
+  it('accepts the same variant repeated across lines when the sum is within stock', async () => {
+    const variant = await prisma.productVariant.findFirstOrThrow({ where: { sku: 'DSD-001' } });
+    const res = await request(app).post('/api/orders').send({
+      ...customer,
+      items: [{ variantId: variant.id, quantity: 1 }, { variantId: variant.id, quantity: 1 }],
+    });
+    expect(res.status).toBe(201);
+    const order = await prisma.order.findUniqueOrThrow({ where: { orderNumber: res.body.orderNumber }, include: { items: true } });
+    expect(order.items.reduce((sum, i) => sum + i.quantity, 0)).toBe(2);
   });
 
   it('rejects a request for more than the available stock', async () => {
