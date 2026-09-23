@@ -47,6 +47,7 @@ describe('OrdersPage', () => {
     const row = screen.getByText(order.orderNumber).closest('tr')!;
     const button = within(row).getByLabelText(`Change status for ${order.orderNumber}`);
     await user.click(button);
+    // Radix UI Select with controlled empty value (value="") requires keyboard to open in test environment
     await user.keyboard('{ArrowDown}');
 
     expect(await screen.findByRole('option', { name: 'PROCESSING' })).toBeInTheDocument();
@@ -73,6 +74,7 @@ describe('OrdersPage', () => {
     const row = screen.getByText(order.orderNumber).closest('tr')!;
     const button = within(row).getByLabelText(`Change status for ${order.orderNumber}`);
     await user.click(button);
+    // Radix UI Select with controlled empty value (value="") requires keyboard to open in test environment
     await user.keyboard('{ArrowDown}');
     await user.click(await screen.findByRole('option', { name: 'SHIPPED' }));
 
@@ -94,6 +96,7 @@ describe('OrdersPage', () => {
     const row = screen.getByText(order.orderNumber).closest('tr')!;
     const button = within(row).getByLabelText(`Change status for ${order.orderNumber}`);
     await user.click(button);
+    // Radix UI Select with controlled empty value (value="") requires keyboard to open in test environment
     await user.keyboard('{ArrowDown}');
     await user.click(await screen.findByRole('option', { name: 'SHIPPED' }));
 
