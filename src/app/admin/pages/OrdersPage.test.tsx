@@ -18,6 +18,14 @@ describe('OrdersPage', () => {
     expect(screen.getByText(order.status)).toBeInTheDocument();
   });
 
+  it('shows an error message instead of an empty table when the list fetch fails', async () => {
+    server.use(http.get(`${API_URL}/api/admin/orders`, () => new HttpResponse(null, { status: 500 })));
+    renderAdminPage(<OrdersPage />);
+
+    expect(await screen.findByText("Couldn't load orders, please try again.")).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
   it('refetches with the status query param when the filter changes', async () => {
     let requestedUrl = '';
     server.use(

@@ -21,7 +21,11 @@ export function LoginPage() {
     mutation.mutate();
   };
 
-  const errorMessage = mutation.error instanceof AdminApiError ? mutation.error.message : null;
+  const errorMessage = mutation.error instanceof AdminApiError
+    ? mutation.error.message
+    : mutation.error
+      ? 'Could not reach the server, please try again.'
+      : null;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">

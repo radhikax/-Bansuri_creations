@@ -8,6 +8,7 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Switch } from '../../components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import {
   AdminApiError,
@@ -40,12 +41,13 @@ interface ProductFormState {
   imagesText: string;
   variantStock: string;
   variantSku: string;
+  isActive: boolean;
 }
 
 const emptyForm: ProductFormState = {
   name: '', slug: '', description: '', categoryId: '',
   basePrice: '', originalPrice: '', imageUrl: '', imagesText: '',
-  variantStock: '', variantSku: '',
+  variantStock: '', variantSku: '', isActive: true,
 };
 
 export function ProductsPage() {
@@ -114,6 +116,7 @@ export function ProductsPage() {
       imagesText: product.images.join('\n'),
       variantStock: '',
       variantSku: '',
+      isActive: product.isActive,
     });
     setFormError(null);
     setDialogOpen(true);
@@ -135,6 +138,7 @@ export function ProductsPage() {
           originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
           imageUrl: form.imageUrl,
           images,
+          isActive: form.isActive,
         },
       });
     } else {
@@ -156,6 +160,10 @@ export function ProductsPage() {
 
   if (productsQuery.isPending || categoriesQuery.isPending) {
     return <p className="text-muted-foreground">Loading products…</p>;
+  }
+
+  if (productsQuery.isError) {
+    return <p className="text-destructive">Couldn't load products, please try again.</p>;
   }
 
   return (
@@ -266,6 +274,12 @@ export function ProductsPage() {
               <Label htmlFor="p-images">Gallery image URLs (one per line)</Label>
               <Textarea id="p-images" value={form.imagesText} onChange={(e) => setForm({ ...form, imagesText: e.target.value })} rows={3} />
             </div>
+            {editingProduct && (
+              <div className="flex items-center gap-2">
+                <Switch id="p-isActive" checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} />
+                <Label htmlFor="p-isActive">Active</Label>
+              </div>
+            )}
             {!editingProduct && (
               <div className="grid grid-cols-2 gap-3 border-t pt-4">
                 <div className="space-y-1.5">

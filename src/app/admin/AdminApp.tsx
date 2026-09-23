@@ -8,6 +8,7 @@ import { CategoriesPage } from './pages/CategoriesPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { Toaster } from '../components/ui/sonner';
 
 const defaultQueryClient = createAdminQueryClient();
 
@@ -28,6 +29,7 @@ export default function AdminApp({ queryClient = defaultQueryClient }: AdminAppP
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>
+      <Toaster />
     </QueryClientProvider>
   );
 }

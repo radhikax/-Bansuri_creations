@@ -116,6 +116,44 @@ describe('ProductsPage', () => {
     expect(receivedBody).toMatchObject({ stock: 25, sku: variant.sku });
   });
 
+  it('shows an error message instead of an empty table when the list fetch fails', async () => {
+    server.use(http.get(`${API_URL}/api/admin/products`, () => new HttpResponse(null, { status: 500 })));
+    renderAdminPage(<ProductsPage />);
+
+    expect(await screen.findByText("Couldn't load products, please try again.")).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  it('shows the active toggle only when editing, reflecting current state, and sends isActive on save', async () => {
+    let receivedBody: unknown;
+    server.use(
+      http.put(`${API_URL}/api/admin/products/:id`, async ({ request }) => {
+        receivedBody = await request.json();
+        return HttpResponse.json({ ...defaultProducts[0], ...(receivedBody as object) });
+      }),
+    );
+    const user = userEvent.setup();
+    renderAdminPage(<ProductsPage />);
+    await screen.findByText(defaultProducts[0].name);
+
+    await user.click(screen.getByRole('button', { name: '+ New product' }));
+    expect(screen.queryByLabelText('Active')).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    const row = screen.getByText(defaultProducts[0].name).closest('tr')!;
+    await user.click(within(row).getByRole('button', { name: 'Edit' }));
+
+    const activeToggle = screen.getByLabelText('Active');
+    expect(activeToggle).toHaveAttribute('aria-checked', String(defaultProducts[0].isActive));
+
+    await user.click(activeToggle);
+    expect(activeToggle).toHaveAttribute('aria-checked', String(!defaultProducts[0].isActive));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(receivedBody).toMatchObject({ isActive: !defaultProducts[0].isActive }));
+  });
+
   it('shows the server validation error inline on create', async () => {
     server.use(http.post(`${API_URL}/api/admin/products`, () => HttpResponse.json({ error: 'Invalid product payload' }, { status: 400 })));
     const user = userEvent.setup();

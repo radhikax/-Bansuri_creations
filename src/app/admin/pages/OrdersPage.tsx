@@ -52,6 +52,8 @@ export function OrdersPage() {
 
       {ordersQuery.isPending ? (
         <p className="text-muted-foreground">Loading orders…</p>
+      ) : ordersQuery.isError ? (
+        <p className="text-destructive">Couldn't load orders, please try again.</p>
       ) : (
         <Table>
           <TableHeader>

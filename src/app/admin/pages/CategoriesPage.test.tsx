@@ -14,6 +14,14 @@ describe('CategoriesPage', () => {
     expect(screen.getByText(defaultCategories[1].name)).toBeInTheDocument();
   });
 
+  it('shows an error message instead of an empty table when the list fetch fails', async () => {
+    server.use(http.get(`${API_URL}/api/admin/categories`, () => new HttpResponse(null, { status: 500 })));
+    renderAdminPage(<CategoriesPage />);
+
+    expect(await screen.findByText("Couldn't load categories, please try again.")).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
   it('creates a category', async () => {
     let receivedBody: unknown;
     server.use(

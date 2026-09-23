@@ -110,6 +110,8 @@ export function CategoriesPage() {
 
       {categoriesQuery.isPending ? (
         <p className="text-muted-foreground">Loading categories…</p>
+      ) : categoriesQuery.isError ? (
+        <p className="text-destructive">Couldn't load categories, please try again.</p>
       ) : (
         <Table>
           <TableHeader>

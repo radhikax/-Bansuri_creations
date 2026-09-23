@@ -1,6 +1,7 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminLogout, getStoreSettings } from './lib/adminApi';
+import { adminLogout, getStoreSettings, AdminUnauthorizedError } from './lib/adminApi';
+import { Button } from '../components/ui/button';
 
 const NAV_ITEMS: { to: string; label: string }[] = [
   { to: '/admin', label: 'Dashboard' },
@@ -28,9 +29,17 @@ export function AdminLayout() {
   }
 
   if (bootstrap.isError) {
-    // A 401 here already triggered the central redirect via the QueryClient's
-    // onError handler (lib/queryClient.ts) — render nothing while it happens.
-    return null;
+    if (bootstrap.error instanceof AdminUnauthorizedError) {
+      // A 401 here already triggered the central redirect via the QueryClient's
+      // onError handler (lib/queryClient.ts) — render nothing while it happens.
+      return null;
+    }
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">Couldn't load the admin panel, please try again.</p>
+        <Button onClick={() => bootstrap.refetch()}>Retry</Button>
+      </div>
+    );
   }
 
   return (
