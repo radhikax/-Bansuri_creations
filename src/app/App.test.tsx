@@ -88,4 +88,12 @@ describe('App (with mocked API)', () => {
     await user.click(within(screen.getByRole('main')).getByRole('link', { name: /Kanha Dresses/ }));
     expect(await screen.findByRole('heading', { level: 1, name: 'Kanha Dresses' })).toBeInTheDocument();
   });
+
+  it('renders the admin section independently of the storefront\'s own data state', async () => {
+    server.use(http.get(`${API_URL}/api/products`, () => new HttpResponse(null, { status: 500 })));
+    goTo('/admin');
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(screen.queryByText("Couldn't load products, please try again later.")).not.toBeInTheDocument();
+  });
 });

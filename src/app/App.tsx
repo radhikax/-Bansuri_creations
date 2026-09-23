@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Header } from './components/Header';
@@ -12,6 +12,8 @@ import { Product } from './types';
 import { getCategories, getProducts } from './lib/api';
 import { useApiData } from './lib/useApiData';
 import { adaptCategory, adaptProduct } from './lib/adapters';
+
+const AdminApp = lazy(() => import('./admin/AdminApp'));
 
 function AnimatedRoutes({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -35,7 +37,7 @@ function AnimatedRoutes({ children }: { children: ReactNode }) {
   );
 }
 
-export default function App() {
+function Storefront() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -78,71 +80,87 @@ export default function App() {
   const loadError = categoriesState.error ?? productsState.error;
 
   return (
+    <div className="min-h-screen flex flex-col">
+      <Header
+        cartItemsCount={totalItems}
+        onCartClick={() => setIsCartOpen(true)}
+      />
+
+      <main className="flex-1">
+        {loading ? (
+          <div className="container mx-auto px-4 py-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+        ) : loadError ? (
+          <div className="container mx-auto px-4 py-16 text-center">
+            <p className="text-lg">Couldn't load products, please try again later.</p>
+          </div>
+        ) : (
+          <AnimatedRoutes>
+            <Route
+              path="/"
+              element={
+                <HomePage
+                  products={products}
+                  categories={categories}
+                  onAddToCart={handleAddToCart}
+                />
+              }
+            />
+            <Route
+              path="/category/:category"
+              element={
+                <CategoryPage
+                  products={products}
+                  categories={categories}
+                  onAddToCart={handleAddToCart}
+                />
+              }
+            />
+            <Route
+              path="/product/:slug"
+              element={
+                <ProductDetailPage
+                  products={products}
+                  onAddToCart={handleAddToCart}
+                />
+              }
+            />
+          </AnimatedRoutes>
+        )}
+      </main>
+
+      <Footer />
+
+      <Cart
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        items={cartItems}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemoveItem={handleRemoveItem}
+      />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
     <Router>
-      <div className="min-h-screen flex flex-col">
-        <Header
-          cartItemsCount={totalItems}
-          onCartClick={() => setIsCartOpen(true)}
+      <Routes>
+        <Route
+          path="/admin/*"
+          element={
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading…</div>}>
+              <AdminApp />
+            </Suspense>
+          }
         />
-
-        <main className="flex-1">
-          {loading ? (
-            <div className="container mx-auto px-4 py-16">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, i) => (
-                  <ProductCardSkeleton key={i} />
-                ))}
-              </div>
-            </div>
-          ) : loadError ? (
-            <div className="container mx-auto px-4 py-16 text-center">
-              <p className="text-lg">Couldn't load products, please try again later.</p>
-            </div>
-          ) : (
-            <AnimatedRoutes>
-              <Route
-                path="/"
-                element={
-                  <HomePage
-                    products={products}
-                    categories={categories}
-                    onAddToCart={handleAddToCart}
-                  />
-                }
-              />
-              <Route
-                path="/category/:category"
-                element={
-                  <CategoryPage
-                    products={products}
-                    categories={categories}
-                    onAddToCart={handleAddToCart}
-                  />
-                }
-              />
-              <Route
-                path="/product/:slug"
-                element={
-                  <ProductDetailPage
-                    products={products}
-                    onAddToCart={handleAddToCart}
-                  />
-                }
-              />
-            </AnimatedRoutes>
-          )}
-        </main>
-
-        <Footer />
-
-        <Cart
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          items={cartItems}
-          onUpdateQuantity={handleUpdateQuantity}
-          onRemoveItem={handleRemoveItem}
-        />
-      </div>
+        <Route path="/*" element={<Storefront />} />
+      </Routes>
     </Router>
   );
 }
