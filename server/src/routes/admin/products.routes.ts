@@ -30,6 +30,7 @@ const createProductSchema = z.object({
   basePrice: z.number().int().positive(),
   originalPrice: z.number().int().positive().optional(),
   imageUrl: z.string().min(1),
+  images: z.array(z.string().min(1)).optional(),
   variants: z.array(variantSchema).min(1),
 });
 
@@ -49,6 +50,8 @@ adminProductsRouter.post('/', asyncHandler(async (req, res) => {
       basePrice: data.basePrice,
       originalPrice: data.originalPrice,
       imageUrl: data.imageUrl,
+      // Mirrors prisma/seed.ts: every product keeps at least its cover image in the gallery.
+      images: data.images && data.images.length > 0 ? data.images : [data.imageUrl],
       variants: { create: data.variants },
     },
     include: { variants: true },
@@ -64,6 +67,7 @@ const updateProductSchema = z.object({
   basePrice: z.number().int().positive().optional(),
   originalPrice: z.number().int().positive().nullable().optional(),
   imageUrl: z.string().min(1).optional(),
+  images: z.array(z.string().min(1)).optional(),
   isActive: z.boolean().optional(),
 });
 

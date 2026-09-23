@@ -125,6 +125,66 @@ describe('admin route auth and validation', () => {
       expect(res.body.variants[0].price).toBe(450);
     });
 
+    it('stores the given images array on creation', async () => {
+      const agent = request.agent(app);
+      await loginAsAdmin(agent);
+      const category = await prisma.category.findFirstOrThrow();
+      const res = await agent.post('/api/admin/products').send({
+        name: 'Gallery Product', slug: 'gallery-product', description: 'd', categoryId: category.id,
+        basePrice: 400, imageUrl: 'cover.jpg', images: ['cover.jpg', 'side.jpg', 'back.jpg'],
+        variants: [validVariant],
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.images).toEqual(['cover.jpg', 'side.jpg', 'back.jpg']);
+    });
+
+    it('defaults images to [imageUrl] when none are given on creation', async () => {
+      const agent = request.agent(app);
+      await loginAsAdmin(agent);
+      const category = await prisma.category.findFirstOrThrow();
+      const res = await agent.post('/api/admin/products').send({
+        name: 'No Gallery Product', slug: 'no-gallery-product', description: 'd', categoryId: category.id,
+        basePrice: 400, imageUrl: 'cover.jpg', variants: [validVariant],
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.images).toEqual(['cover.jpg']);
+    });
+
+    it('defaults images to [imageUrl] when an empty array is given on creation', async () => {
+      const agent = request.agent(app);
+      await loginAsAdmin(agent);
+      const category = await prisma.category.findFirstOrThrow();
+      const res = await agent.post('/api/admin/products').send({
+        name: 'Empty Gallery Product', slug: 'empty-gallery-product', description: 'd', categoryId: category.id,
+        basePrice: 400, imageUrl: 'cover.jpg', images: [], variants: [validVariant],
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.images).toEqual(['cover.jpg']);
+    });
+
+    it('rejects an images array containing an empty string', async () => {
+      const agent = request.agent(app);
+      await loginAsAdmin(agent);
+      const category = await prisma.category.findFirstOrThrow();
+      const res = await agent.post('/api/admin/products').send({
+        name: 'Bad Gallery Product', slug: 'bad-gallery-product', description: 'd', categoryId: category.id,
+        basePrice: 400, imageUrl: 'cover.jpg', images: ['cover.jpg', ''], variants: [validVariant],
+      });
+      expect(res.status).toBe(400);
+      expect(await prisma.product.count({ where: { slug: 'bad-gallery-product' } })).toBe(0);
+    });
+
+    it('replaces the images array on update', async () => {
+      const agent = request.agent(app);
+      await loginAsAdmin(agent);
+      const product = await prisma.product.findFirstOrThrow();
+      const res = await agent
+        .put(`/api/admin/products/${product.id}`)
+        .send({ images: ['new-a.jpg', 'new-b.jpg'] });
+      expect(res.status).toBe(200);
+      expect(res.body.images).toEqual(['new-a.jpg', 'new-b.jpg']);
+    });
+
     it('rejects an invalid product update and leaves the product unchanged', async () => {
       const agent = request.agent(app);
       await loginAsAdmin(agent);
