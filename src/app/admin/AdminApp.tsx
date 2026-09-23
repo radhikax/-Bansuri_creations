@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { ProductsPage } from './pages/ProductsPage';
+import { OrdersPage } from './pages/OrdersPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 const defaultQueryClient = createAdminQueryClient();
@@ -23,6 +24,7 @@ export default function AdminApp({ queryClient = defaultQueryClient }: AdminAppP
           <Route index element={<DashboardPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
+          <Route path="orders" element={<OrdersPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>

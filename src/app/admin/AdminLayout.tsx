@@ -6,6 +6,7 @@ const NAV_ITEMS: { to: string; label: string }[] = [
   { to: '/admin', label: 'Dashboard' },
   { to: '/admin/products', label: 'Products' },
   { to: '/admin/categories', label: 'Categories' },
+  { to: '/admin/orders', label: 'Orders' },
   { to: '/admin/settings', label: 'Settings' },
 ];
 
