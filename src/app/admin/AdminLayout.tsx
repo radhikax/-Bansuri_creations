@@ -4,6 +4,7 @@ import { adminLogout, getStoreSettings } from './lib/adminApi';
 
 const NAV_ITEMS: { to: string; label: string }[] = [
   { to: '/admin', label: 'Dashboard' },
+  { to: '/admin/categories', label: 'Categories' },
   { to: '/admin/settings', label: 'Settings' },
 ];
 
