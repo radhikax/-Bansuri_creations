@@ -74,6 +74,7 @@ describe('admin route auth and validation', () => {
     ['post', '/api/admin/categories'],
     ['put', '/api/admin/categories/x'],
     ['delete', '/api/admin/categories/x'],
+    ['get', '/api/admin/categories'],
     ['get', '/api/admin/orders'],
     ['put', '/api/admin/orders/x/status'],
     ['get', '/api/admin/settings'],

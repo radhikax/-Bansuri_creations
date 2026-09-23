@@ -7,6 +7,11 @@ import { asyncHandler } from '../../middleware/asyncHandler';
 export const adminCategoriesRouter = Router();
 adminCategoriesRouter.use(requireAdminAuth);
 
+adminCategoriesRouter.get('/', asyncHandler(async (_req, res) => {
+  const categories = await prisma.category.findMany({ orderBy: { name: 'asc' } });
+  res.json(categories);
+}));
+
 const categorySchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
