@@ -5,6 +5,7 @@ import { AdminLayout } from './AdminLayout';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CategoriesPage } from './pages/CategoriesPage';
+import { ProductsPage } from './pages/ProductsPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 const defaultQueryClient = createAdminQueryClient();
@@ -20,6 +21,7 @@ export default function AdminApp({ queryClient = defaultQueryClient }: AdminAppP
         <Route path="login" element={<LoginPage />} />
         <Route element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="products" element={<ProductsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
