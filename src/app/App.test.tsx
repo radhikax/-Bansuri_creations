@@ -93,7 +93,9 @@ describe('App (with mocked API)', () => {
     server.use(http.get(`${API_URL}/api/products`, () => new HttpResponse(null, { status: 500 })));
     goTo('/admin');
     render(<App />);
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+    // Longer timeout: this chain is a lazy import + Suspense + a real MSW round trip
+    // for the admin bootstrap query, which can run close to the default 1000ms under load.
+    expect(await screen.findByRole('heading', { name: 'Dashboard' }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.queryByText("Couldn't load products, please try again later.")).not.toBeInTheDocument();
   });
 });
