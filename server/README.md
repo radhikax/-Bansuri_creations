@@ -31,21 +31,32 @@ Browser smoke tests live at the repo root (`npm run e2e`) and use their own
    - Start command: `npm start`
    - Environment variables: same keys as `.env.example`, with real production
      values (`DATABASE_URL` from Neon/Supabase, live Razorpay keys, Resend key,
-     `FRONTEND_ORIGIN` set to the deployed frontend's URL, `NODE_ENV=production`).
+     `NODE_ENV=production`). `FRONTEND_ORIGIN` is only needed if the frontend
+     calls the API cross-origin via `VITE_API_BASE_URL`; the default
+     same-origin setup below doesn't need it.
 3. Serve the frontend and the API from **one origin**: configure the frontend
    host to forward `/api/*` to this API, so the admin session cookie stays
-   first-party. Examples (replace `<api-host>`):
+   first-party. Examples (replace `<api-host>`); the SPA fallback must come
+   after the `/api` rule so client routes like `/admin`, `/admin/login` and
+   `/category/<slug>` don't 404 on a direct load or reload:
    - Vercel `vercel.json`:
-     `{ "rewrites": [{ "source": "/api/:path*", "destination": "https://<api-host>/api/:path*" }] }`
-   - Netlify `_redirects`:
-     `/api/*  https://<api-host>/api/:splat  200`
+     `{ "rewrites": [ { "source": "/api/:path*", "destination": "https://<api-host>/api/:path*" }, { "source": "/(.*)", "destination": "/index.html" } ] }`
+   - Netlify `_redirects` (order matters, `/api` first):
+     ```
+     /api/*  https://<api-host>/api/:splat  200
+     /*      /index.html                    200
+     ```
    Leave `VITE_API_BASE_URL` unset in the frontend build.
 4. Run `npx prisma migrate deploy` against the production `DATABASE_URL` once
    (via the platform's shell/console, or a one-off deploy hook) before first use.
 5. Run `npm run prisma:seed` once against production to load initial products
-   and create the real admin user — then change the seeded admin password
-   via a direct login + a future admin "change password" flow, or by
-   re-seeding with different `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`.
+   and create the real admin user — then immediately log in to `/admin` and
+   change the password under Settings → Account. Alternatively, set
+   `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` before running the first
+   production seed. `seed.ts` upserts the admin with `update: {}`, so
+   re-seeding never changes an existing admin's password — re-seeding with a
+   new email creates a second admin and leaves `admin@example.com` /
+   `changeme123` live in production.
 6. In the Razorpay dashboard, configure the webhook URL to
    `https://<your-deployed-api>/api/orders/razorpay-webhook` and set the
    webhook secret to match `RAZORPAY_WEBHOOK_SECRET`.

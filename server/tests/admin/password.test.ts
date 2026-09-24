@@ -87,4 +87,37 @@ describe('POST /api/admin/password', () => {
     const newLogin = await request(app).post('/api/admin/login').send({ email: 'admin@example.com', password: NEW_PASSWORD });
     expect(newLogin.status).toBe(200);
   });
+
+  it('re-issues a fresh cookie that alone keeps the browser signed in, not the stale request cookie', async () => {
+    // Create the admin user (via a throwaway agent) without using its cookie.
+    await loginAsAdmin(request.agent(app));
+    const admin = await prisma.adminUser.findUniqueOrThrow({ where: { email: 'admin@example.com' } });
+    // Simulate a browser whose cookie was issued a minute ago (before the
+    // change), so login and change do NOT happen in the same second. If the
+    // route ever stopped re-issuing the cookie, or re-issued one whose `iat`
+    // fell below the new `passwordChangedAt` (e.g. an off-by-one from
+    // rounding), this old cookie would incorrectly keep working, or the new
+    // cookie would incorrectly stop working.
+    const staleToken = jwt.sign(
+      { adminId: admin.id, iat: Math.floor(Date.now() / 1000) - 60 },
+      process.env.JWT_SECRET!,
+    );
+
+    const res = await request(app)
+      .post('/api/admin/password')
+      .set('Cookie', `admin_session=${staleToken}`)
+      .send({ currentPassword: 'pw', newPassword: NEW_PASSWORD });
+    expect(res.status).toBe(200);
+    const freshCookie = res.headers['set-cookie']?.[0];
+    expect(freshCookie).toMatch(/admin_session=/);
+
+    // Only the newly-issued cookie keeps the browser signed in.
+    const withFreshCookie = await request(app).get('/api/admin/settings').set('Cookie', freshCookie!);
+    expect(withFreshCookie.status).toBe(200);
+
+    // The original stale cookie used to make the request is now rejected.
+    const withStaleCookie = await request(app).get('/api/admin/settings').set('Cookie', `admin_session=${staleToken}`);
+    expect(withStaleCookie.status).toBe(401);
+    expect(withStaleCookie.body).toEqual({ error: 'Not authenticated' });
+  });
 });

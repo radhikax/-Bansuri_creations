@@ -94,10 +94,12 @@ export class AdminUnauthorizedError extends Error {
 
 export class AdminApiError extends Error {
   details?: unknown;
-  constructor(message: string, details?: unknown) {
+  status?: number;
+  constructor(message: string, details?: unknown, status?: number) {
     super(message);
     this.name = 'AdminApiError';
     this.details = details;
+    this.status = status;
   }
 }
 
@@ -117,7 +119,7 @@ async function adminFetch<T>(
   }
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string; details?: unknown };
-    throw new AdminApiError(body.error ?? `Request to ${path} failed with status ${res.status}`, body.details);
+    throw new AdminApiError(body.error ?? `Request to ${path} failed with status ${res.status}`, body.details, res.status);
   }
   if (res.status === 204) {
     return undefined as T;
@@ -139,14 +141,27 @@ export function adminLogout(): Promise<{ success: true }> {
   return adminFetch('/api/admin/logout', { method: 'POST' });
 }
 
-// A 401 here means "current password is wrong", not an expired session, so it
-// must not trigger the central redirect-to-login handling (same as adminLogin).
+// A 401 with "Current password is incorrect" here means the current password
+// is wrong, not an expired session, so it must not trigger the central
+// redirect-to-login handling (same as adminLogin). Any other 401 (e.g. the
+// middleware's "Not authenticated" / "Invalid session" for a session revoked
+// by a password change elsewhere) is re-thrown as AdminUnauthorizedError so
+// that central handling still redirects to login.
+const WRONG_CURRENT_PASSWORD_MESSAGE = 'Current password is incorrect';
+
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-  await adminFetch(
-    '/api/admin/password',
-    { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) },
-    { unauthorizedIsError: true },
-  );
+  try {
+    await adminFetch(
+      '/api/admin/password',
+      { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) },
+      { unauthorizedIsError: true },
+    );
+  } catch (err) {
+    if (err instanceof AdminApiError && err.status === 401 && err.message !== WRONG_CURRENT_PASSWORD_MESSAGE) {
+      throw new AdminUnauthorizedError();
+    }
+    throw err;
+  }
 }
 
 // Settings

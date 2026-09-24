@@ -5,6 +5,7 @@ import {
   AdminUnauthorizedError,
   adminLogin,
   adminLogout,
+  changePassword,
   createAdminCategory,
   createAdminProduct,
   deleteAdminCategory,
@@ -149,6 +150,26 @@ describe('adminApi', () => {
   it('updateAdminOrderStatus sends the new status', async () => {
     const updated = await updateAdminOrderStatus(defaultAdminOrders[0].id, 'SHIPPED');
     expect(updated.status).toBe('SHIPPED');
+  });
+
+  it('changePassword throws AdminApiError with the server message when the current password is wrong', async () => {
+    server.use(
+      http.post(`${API_URL}/api/admin/password`, () => HttpResponse.json({ error: 'Current password is incorrect' }, { status: 401 })),
+    );
+    await expect(changePassword('wrong', 'new-password-1')).rejects.toMatchObject({
+      message: 'Current password is incorrect',
+    });
+    server.use(
+      http.post(`${API_URL}/api/admin/password`, () => HttpResponse.json({ error: 'Current password is incorrect' }, { status: 401 })),
+    );
+    await expect(changePassword('wrong', 'new-password-1')).rejects.toBeInstanceOf(AdminApiError);
+  });
+
+  it('changePassword throws AdminUnauthorizedError on a 401 caused by a revoked session', async () => {
+    server.use(
+      http.post(`${API_URL}/api/admin/password`, () => HttpResponse.json({ error: 'Not authenticated' }, { status: 401 })),
+    );
+    await expect(changePassword('old-password', 'new-password-1')).rejects.toBeInstanceOf(AdminUnauthorizedError);
   });
 
   it('throws AdminUnauthorizedError on a 401 from a non-login endpoint', async () => {

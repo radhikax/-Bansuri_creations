@@ -41,9 +41,9 @@
 - **Spec §2 — API base URL.** The spec says the default `API_BASE_URL` becomes `''` (relative). The plan uses `window.location.origin` instead.
   - In a browser, `${window.location.origin}/api/...` is the same request as `/api/...`.
   - Node's `fetch` (used under Vitest/jsdom) rejects relative URLs, so `''` would break every frontend unit test.
-- **Spec §3 M4 — timeout mechanism.** The spec names `AbortSignal.timeout(10_000)`. The plan uses an `AbortController` plus `setTimeout`.
-  - Behaviour is identical, and Vitest fake timers can drive `setTimeout`.
-  - `AbortSignal.timeout` uses Node-internal timers that fake timers can't advance, so it couldn't be unit-tested without a real 10 s wait.
+- **Spec §3 M4 — timeout mechanism.** The spec names `AbortSignal.timeout(10_000)`. The implementation instead races the fetch against a `Promise` that rejects after a 10 s `setTimeout`, with no `AbortSignal` involved.
+  - `jsdom`'s `AbortSignal` is incompatible with Node's `fetch` and MSW under Vitest, so wiring an abort signal through the request breaks the test environment.
+  - `Promise.race` against the rejecting timer stops the UI from waiting past 10 s, but it does not cancel the underlying request — the fetch keeps running in the background until it settles on its own.
 
 ---
 

@@ -39,10 +39,14 @@ test('add to cart and change the quantity', async ({ page, request }) => {
   const cart = page.getByRole('dialog', { name: /Shopping Cart/ });
   await expect(cart).toBeVisible();
   await expect(cart.getByText(product.name, { exact: true })).toBeVisible();
+  const subtotalRow = cart.locator('div').filter({ hasText: 'Subtotal' }).last();
   await expect(cart.getByText(`₹${price}`, { exact: true }).first()).toBeVisible();
+  await expect(subtotalRow.getByText(`₹${price}`, { exact: true })).toBeVisible();
 
   await cart.getByRole('button', { name: 'Increase quantity' }).click();
+  // Both the line total and the cart's Subtotal row must double.
   await expect(cart.getByText(`₹${price * 2}`, { exact: true }).first()).toBeVisible();
+  await expect(subtotalRow.getByText(`₹${price * 2}`, { exact: true })).toBeVisible();
 });
 
 test('a category card shows only that category, and Back returns home', async ({ page, request }) => {
