@@ -43,6 +43,7 @@ export const defaultAdminOrders = [makeAdminOrder()];
 export const adminHandlers = [
   http.post(`${API_URL}/api/admin/login`, () => HttpResponse.json({ success: true })),
   http.post(`${API_URL}/api/admin/logout`, () => HttpResponse.json({ success: true })),
+  http.post(`${API_URL}/api/admin/password`, () => HttpResponse.json({ success: true })),
   http.get(`${API_URL}/api/admin/settings`, () => HttpResponse.json(defaultStoreSettings)),
   http.put(`${API_URL}/api/admin/settings`, async ({ request }) =>
     HttpResponse.json({ ...defaultStoreSettings, ...(await request.json() as object) }),

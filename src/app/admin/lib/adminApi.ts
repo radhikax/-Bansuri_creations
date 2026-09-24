@@ -137,6 +137,16 @@ export function adminLogout(): Promise<{ success: true }> {
   return adminFetch('/api/admin/logout', { method: 'POST' });
 }
 
+// A 401 here means "current password is wrong", not an expired session, so it
+// must not trigger the central redirect-to-login handling (same as adminLogin).
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await adminFetch(
+    '/api/admin/password',
+    { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) },
+    { unauthorizedIsError: true },
+  );
+}
+
 // Settings
 export function getStoreSettings(): Promise<StoreSettings> {
   return adminFetch('/api/admin/settings');
