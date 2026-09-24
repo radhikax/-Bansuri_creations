@@ -59,13 +59,8 @@ describe('request timeout', () => {
 
   it('rejects with a timeout error when the API does not answer in time', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    // A fetch that only settles when its signal aborts, standing in for a hung backend.
-    vi.spyOn(globalThis, 'fetch').mockImplementation(
-      (_input, init) =>
-        new Promise((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
-        }),
-    );
+    // A fetch that never settles, standing in for a hung backend.
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}));
 
     const request = getCategories();
     const assertion = expect(request).rejects.toThrow('Request to /api/categories timed out');

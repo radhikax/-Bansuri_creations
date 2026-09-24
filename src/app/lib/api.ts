@@ -45,29 +45,16 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? window.location.origin
 export const REQUEST_TIMEOUT_MS = 10_000;
 
 async function fetchJson<T>(path: string): Promise<T> {
-  const controller = new AbortController();
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, REQUEST_TIMEOUT_MS);
-
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Request to ${path} timed out`)), REQUEST_TIMEOUT_MS);
+  });
   try {
-    // Check if fetch has been mocked (Vitest spy) to safely use AbortSignal
-    const fetchIsMocked = typeof (fetch as any).__original !== 'undefined' || typeof (fetch as any)._isMockFunction !== 'undefined';
-    const fetchOptions: RequestInit = fetchIsMocked ? { signal: controller.signal } : {};
-
-    const res = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
+    const res = await Promise.race([fetch(`${API_BASE_URL}${path}`), timeout]);
     if (!res.ok) {
       throw new Error(`Request to ${path} failed with status ${res.status}`);
     }
-    return (await res.json()) as T;
-  } catch (err) {
-    // Check if this was an abort due to timeout
-    if (timedOut) {
-      throw new Error(`Request to ${path} timed out`);
-    }
-    throw err;
+    return await Promise.race([res.json() as Promise<T>, timeout]);
   } finally {
     clearTimeout(timer);
   }
