@@ -94,10 +94,11 @@ model OrderItem {
 }
 
 model AdminUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  passwordChangedAt DateTime?
+  createdAt         DateTime  @default(now())
 }
 
 model StoreSettings {
