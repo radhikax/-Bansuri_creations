@@ -14,6 +14,7 @@ export interface Product {
   image: string;
   images: string[];
   category: string;
+  categorySlug: string;
   rating: number;
   inStock: boolean;
   variants?: ProductVariant[];

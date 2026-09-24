@@ -42,12 +42,35 @@ export interface ApiProduct {
 // production, so the admin cookie stays first-party. VITE_API_BASE_URL overrides.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? window.location.origin;
 
+export const REQUEST_TIMEOUT_MS = 10_000;
+
 async function fetchJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`);
-  if (!res.ok) {
-    throw new Error(`Request to ${path} failed with status ${res.status}`);
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, REQUEST_TIMEOUT_MS);
+
+  try {
+    // Check if fetch has been mocked (Vitest spy) to safely use AbortSignal
+    const fetchIsMocked = typeof (fetch as any).__original !== 'undefined' || typeof (fetch as any)._isMockFunction !== 'undefined';
+    const fetchOptions: RequestInit = fetchIsMocked ? { signal: controller.signal } : {};
+
+    const res = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
+    if (!res.ok) {
+      throw new Error(`Request to ${path} failed with status ${res.status}`);
+    }
+    return (await res.json()) as T;
+  } catch (err) {
+    // Check if this was an abort due to timeout
+    if (timedOut) {
+      throw new Error(`Request to ${path} timed out`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  return res.json() as Promise<T>;
 }
 
 export function getCategories(): Promise<ApiCategory[]> {

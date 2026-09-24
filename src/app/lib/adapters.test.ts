@@ -71,4 +71,33 @@ describe('adaptProduct', () => {
       { id: 'b', label: 'L', price: 500, stock: 0 },
     ]);
   });
+
+  it('carries the category slug through', () => {
+    const product = adaptProduct(makeApiProduct());
+    expect(product.categorySlug).toBe('diwali-decor');
+  });
+
+  it('is in stock when any variant has stock, even if the first does not', () => {
+    const product = adaptProduct(
+      makeApiProduct({
+        variants: [
+          makeApiVariant({ id: 'v1', stock: 0 }),
+          makeApiVariant({ id: 'v2', stock: 3 }),
+        ],
+      }),
+    );
+    expect(product.inStock).toBe(true);
+  });
+
+  it('is out of stock when every variant has zero stock', () => {
+    const product = adaptProduct(
+      makeApiProduct({
+        variants: [
+          makeApiVariant({ id: 'v1', stock: 0 }),
+          makeApiVariant({ id: 'v2', stock: 0 }),
+        ],
+      }),
+    );
+    expect(product.inStock).toBe(false);
+  });
 });

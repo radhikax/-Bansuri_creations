@@ -24,14 +24,14 @@ describe('App (with mocked API)', () => {
   it('shows an error message when the API fails', async () => {
     server.use(http.get(`${API_URL}/api/products`, () => new HttpResponse(null, { status: 500 })));
     render(<App />);
-    expect(await screen.findByText("Couldn't load products, please try again later.")).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't load products or categories. Please try again.")).toBeInTheDocument();
     expect(screen.queryByText('Shop by Category')).not.toBeInTheDocument();
   });
 
   it('shows an error when categories fail too', async () => {
     server.use(http.get(`${API_URL}/api/categories`, () => HttpResponse.error()));
     render(<App />);
-    expect(await screen.findByText("Couldn't load products, please try again later.")).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't load products or categories. Please try again.")).toBeInTheDocument();
   });
 
   it('renders a category page from the URL', async () => {
@@ -96,6 +96,6 @@ describe('App (with mocked API)', () => {
     // Longer timeout: this chain is a lazy import + Suspense + a real MSW round trip
     // for the admin bootstrap query, which can run close to the default 1000ms under load.
     expect(await screen.findByRole('heading', { name: 'Dashboard' }, { timeout: 5000 })).toBeInTheDocument();
-    expect(screen.queryByText("Couldn't load products, please try again later.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Couldn't load products or categories. Please try again.")).not.toBeInTheDocument();
   });
 });

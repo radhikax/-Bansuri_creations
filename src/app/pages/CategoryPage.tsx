@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ProductCard } from '../components/ProductCard';
 import { Reveal } from '../components/Reveal';
@@ -17,18 +17,28 @@ interface CategoryPageProps {
 
 export function CategoryPage({ products, categories, onAddToCart }: CategoryPageProps) {
   const { category: categorySlug } = useParams<{ category: string }>();
-
   const matchedCategory = categories.find((c) => c.slug === categorySlug);
-  const categoryName = matchedCategory?.title ?? '';
-  const filteredProducts = products.filter((p) => p.category === categoryName);
+
+  if (!matchedCategory) {
+    return (
+      <div className="container mx-auto px-4 py-24 text-center">
+        <p className="text-lg mb-4">Category not found</p>
+        <Link to="/" className="text-primary hover:underline">
+          Back to shopping
+        </Link>
+      </div>
+    );
+  }
+
+  const filteredProducts = products.filter((p) => p.categorySlug === matchedCategory.slug);
 
   return (
     <div className="min-h-screen py-16">
       <div className="container mx-auto px-4">
         <Reveal>
-          <h1 className="text-4xl md:text-5xl mb-4">{categoryName}</h1>
+          <h1 className="text-4xl md:text-5xl mb-4">{matchedCategory.title}</h1>
           <p className="text-muted-foreground mb-12">
-            Browse our collection of {categoryName.toLowerCase()}
+            Browse our collection of {matchedCategory.title.toLowerCase()}
           </p>
         </Reveal>
 

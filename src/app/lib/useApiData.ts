@@ -6,6 +6,14 @@ interface ApiDataState<T> {
   error: string | null;
 }
 
+/**
+ * Runs `fetcher` once, on mount, and tracks its loading/error/data state.
+ *
+ * Later changes to `fetcher` are deliberately ignored (the effect has no deps),
+ * so pass a stable fetcher. A fetcher that closes over changing values — e.g.
+ * `() => getProducts(slug)` with a route param — will keep returning the first
+ * result; add a deps parameter before using it that way.
+ */
 export function useApiData<T>(fetcher: () => Promise<T>): ApiDataState<T> {
   const [state, setState] = useState<ApiDataState<T>>({
     data: null,

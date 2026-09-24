@@ -62,6 +62,7 @@ export function makeProduct(overrides: Partial<Product> = {}): Product {
     image: 'https://img.test/diya.jpg',
     images: ['https://img.test/diya.jpg'],
     category: 'Diwali Decor',
+    categorySlug: 'diwali-decor',
     rating: 4.5,
     inStock: true,
     ...overrides,

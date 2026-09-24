@@ -22,7 +22,7 @@ export function adaptCategory(api: ApiCategory): AdaptedCategory {
 export function adaptProduct(api: ApiProduct): Product {
   const defaultVariant = api.variants[0];
   const price = defaultVariant?.price ?? api.basePrice;
-  const inStock = defaultVariant ? defaultVariant.stock > 0 : false;
+  const inStock = api.variants.some((v) => v.stock > 0);
 
   return {
     id: api.id,
@@ -33,6 +33,7 @@ export function adaptProduct(api: ApiProduct): Product {
     image: api.imageUrl,
     images: api.images.length > 0 ? api.images : [api.imageUrl],
     category: api.category.name,
+    categorySlug: api.category.slug,
     rating: api.rating,
     inStock,
     variants: api.variants.map((v) => ({

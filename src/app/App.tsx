@@ -97,7 +97,7 @@ function Storefront() {
           </div>
         ) : loadError ? (
           <div className="container mx-auto px-4 py-16 text-center">
-            <p className="text-lg">Couldn't load products, please try again later.</p>
+            <p className="text-lg">Couldn't load products or categories. Please try again.</p>
           </div>
         ) : (
           <AnimatedRoutes>

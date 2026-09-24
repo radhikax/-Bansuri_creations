@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { getCategories, getProductBySlug, getProducts } from './api';
+import { getCategories, getProductBySlug, getProducts, REQUEST_TIMEOUT_MS } from './api';
 import { server, defaultCategories, defaultProducts } from '../../test/server';
 import { API_URL } from '../../test/fixtures';
 
@@ -48,5 +48,28 @@ describe('api client', () => {
   it('throws on a server error', async () => {
     server.use(http.get(`${API_URL}/api/categories`, () => new HttpResponse(null, { status: 500 })));
     await expect(getCategories()).rejects.toThrow('status 500');
+  });
+});
+
+describe('request timeout', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('rejects with a timeout error when the API does not answer in time', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    // A fetch that only settles when its signal aborts, standing in for a hung backend.
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      (_input, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+        }),
+    );
+
+    const request = getCategories();
+    const assertion = expect(request).rejects.toThrow('Request to /api/categories timed out');
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+    await assertion;
   });
 });
