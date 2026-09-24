@@ -9,7 +9,10 @@ export default function globalSetup() {
   }
   // Drops, re-migrates and re-seeds, so every run starts from the seed data
   // (the seed's admin upsert never resets an existing password).
-  execSync('npx prisma migrate reset --force', {
+  // --skip-generate: the webServer API is already running and holding the query
+  // engine DLL open by this point, so regenerating it would EPERM; the schema/client is
+  // static across e2e runs anyway.
+  execSync('npx prisma migrate reset --force --skip-generate', {
     cwd: fileURLToPath(new URL('../server', import.meta.url)),
     stdio: 'inherit',
     env: {
