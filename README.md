@@ -8,4 +8,17 @@
   Run `npm i` to install the dependencies.
 
   Run `npm run dev` to start the development server.
+
+  ## Browser smoke tests (Playwright)
+
+  One-time setup (Postgres running via `cd server && docker compose up -d`):
+
+  - `cd server && docker compose exec postgres createdb -U ecommerce ecommerce_e2e`
+  - `npx playwright install chromium`
+
+  Run `npm run e2e`. It resets and re-seeds the separate `ecommerce_e2e`
+  database, starts its own API on port 4000 (stop your dev API first — the run
+  fails fast if the port is busy, so it can never touch `ecommerce_dev`), and
+  starts or reuses the Vite dev server on port 5173. Failure screenshots and
+  traces land in `test-results/`.
   

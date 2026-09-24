@@ -160,6 +160,7 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
                             size="icon"
                             variant="outline"
                             className="h-8 w-8"
+                            aria-label="Decrease quantity"
                             onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
                           >
                             <Minus className="h-3 w-3" />
@@ -169,6 +170,7 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
                             size="icon"
                             variant="outline"
                             className="h-8 w-8"
+                            aria-label="Increase quantity"
                             onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                           >
                             <Plus className="h-3 w-3" />

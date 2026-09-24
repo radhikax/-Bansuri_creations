@@ -20,6 +20,9 @@ guest checkout orders, Razorpay payments, and an admin panel backend.
 database (via `.env.test`). Tests reset relevant tables in `beforeEach`
 blocks, so they can be run repeatedly without manual cleanup.
 
+Browser smoke tests live at the repo root (`npm run e2e`) and use their own
+`ecommerce_e2e` database; see the root README for the one-time setup.
+
 ## Deployment (free-tier target)
 
 1. Create a Postgres database on Neon or Supabase (free tier) for production.
