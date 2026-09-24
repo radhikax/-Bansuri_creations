@@ -9,7 +9,7 @@ adminProductsRouter.use(requireAdminAuth);
 
 adminProductsRouter.get('/', asyncHandler(async (_req, res) => {
   const products = await prisma.product.findMany({
-    include: { variants: true, category: true },
+    include: { variants: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }, category: true },
     orderBy: { name: 'asc' },
   });
   res.json(products);
