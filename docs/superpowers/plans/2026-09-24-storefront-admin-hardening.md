@@ -1290,7 +1290,7 @@ Expected: no match and `exit 1`, meaning `.env.example` is still tracked.
 - [ ] **Step 10: Full frontend suite and build**
 
 Run: `npm test`
-Expected: all pass (147 + 3 adapters + 2 CategoryPage + 1 timeout = 153).
+Expected: all pass (147 + 3 adapters + 1 net CategoryPage + 1 timeout = 152).
 
 Run: `npm run build`
 Expected: builds with no errors.
