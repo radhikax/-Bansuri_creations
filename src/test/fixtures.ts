@@ -1,7 +1,8 @@
 import type { ApiCategory, ApiProduct, ApiProductVariant } from '../app/lib/api';
 import type { Product } from '../app/types';
 
-export const API_URL = 'http://localhost:4000';
+// The API clients default to the page's own origin (see src/app/lib/api.ts).
+export const API_URL = window.location.origin;
 
 export function makeApiCategory(overrides: Partial<ApiCategory> = {}): ApiCategory {
   return {

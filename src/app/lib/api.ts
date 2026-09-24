@@ -38,7 +38,9 @@ export interface ApiProduct {
   updatedAt: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
+// Same-origin by default: Vite proxies /api in dev and the host rewrites it in
+// production, so the admin cookie stays first-party. VITE_API_BASE_URL overrides.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? window.location.origin;
 
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`);
