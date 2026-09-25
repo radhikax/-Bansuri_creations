@@ -24,7 +24,7 @@ export function HomePage({ products, categories, onAddToCart }: HomePageProps) {
       <Hero />
 
       {/* Categories Section */}
-      <section className="container mx-auto px-4 py-16">
+      <section id="categories" className="container mx-auto px-4 py-16 scroll-mt-20">
         <Reveal>
           <h2 className="text-3xl md:text-4xl text-center mb-12">
             Shop by Category
@@ -46,7 +46,7 @@ export function HomePage({ products, categories, onAddToCart }: HomePageProps) {
       </section>
 
       {/* Featured Products */}
-      <section className="container mx-auto px-4 py-16">
+      <section id="featured" className="container mx-auto px-4 py-16 scroll-mt-20">
         <Reveal>
           <h2 className="text-3xl md:text-4xl text-center mb-12">
             Featured Products

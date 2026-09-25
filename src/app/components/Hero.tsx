@@ -20,11 +20,16 @@ export function Hero() {
             Discover unique, handmade items for Indian weddings, festivals, and special occasions. From wedding packing to Kanha dresses, birthday gifts to festive decorations - each piece crafted with love.
           </p>
           <div className="flex gap-4">
-            <Button size="lg" className="bg-accent-gold text-accent-gold-foreground hover:bg-accent-gold/90">
-              Shop Now
+            <Button asChild size="lg" className="bg-accent-gold text-accent-gold-foreground hover:bg-accent-gold/90">
+              <a href="#featured">Shop Now</a>
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-              View Collections
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="bg-transparent border-white text-white hover:bg-white/10 hover:text-white"
+            >
+              <a href="#categories">View Collections</a>
             </Button>
           </div>
         </Reveal>
