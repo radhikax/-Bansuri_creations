@@ -9,6 +9,7 @@ import { ShimmerImage } from './ShimmerImage';
 import { Product } from '../types';
 import { flyToCart } from '../lib/flyToCart';
 import { useVariantSelection } from '../lib/useVariantSelection';
+import { imageSrcSet, optimizedImageUrl } from '../lib/images';
 
 interface ProductCardProps {
   product: Product;
@@ -40,7 +41,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
 
   const handleAddToCart = () => {
     if (addButtonRef.current) {
-      flyToCart(addButtonRef.current, product.image);
+      flyToCart(addButtonRef.current, optimizedImageUrl(product.image, 160));
     }
     onAddToCart(buildCartItem());
 
@@ -53,7 +54,9 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
     <Card className="overflow-hidden group h-full flex flex-colhover:scale-[1.03] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-[transform,box-shadow] duration-200 ease-out motion-reduce:hover:scale-100 motion-reduce:transition-shadow">
       <Link to={`/product/${product.slug}`} className="relative h-64 shrink-0 overflow-hidden block">
         <ShimmerImage
-          src={product.image}
+          src={optimizedImageUrl(product.image, 600)}
+          srcSet={imageSrcSet(product.image, 600)}
+          loading="lazy"
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-[1.08] transition-transform duration-500 ease-out motion-reduce:group-hover:scale-100"
         />

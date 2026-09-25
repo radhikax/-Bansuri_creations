@@ -1,5 +1,6 @@
 import { Card } from './ui/card';
 import { Link } from 'react-router-dom';
+import { imageSrcSet, optimizedImageUrl } from '../lib/images';
 
 interface CategoryCardProps {
   title: string;
@@ -15,7 +16,9 @@ export function CategoryCard({ title, description, image, icon, slug }: Category
       <Card className="overflow-hidden group cursor-pointer hover:shadow-lg transition-shadow">
         <div className="relative h-64 overflow-hidden">
           <img
-            src={image}
+            src={optimizedImageUrl(image, 600)}
+            srcSet={imageSrcSet(image, 600)}
+            loading="lazy"
             alt={title}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           />

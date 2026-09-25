@@ -32,4 +32,13 @@ describe('ImageGallery', () => {
     fireEvent.mouseLeave(zoomArea);
     expect(screen.getByAltText('Diya')).toBeInTheDocument();
   });
+
+  it('requests 1200px for the main image and 200px lazy thumbnails', () => {
+    const images = ['https://images.unsplash.com/photo-a', 'https://images.unsplash.com/photo-b'];
+    render(<ImageGallery images={images} alt="Diya" />);
+    expect(screen.getByRole('img', { name: 'Diya' }).getAttribute('src')).toContain('w=1200');
+    const thumb = screen.getByRole('img', { name: 'Diya thumbnail 2' });
+    expect(thumb.getAttribute('src')).toContain('w=200');
+    expect(thumb).toHaveAttribute('loading', 'lazy');
+  });
 });

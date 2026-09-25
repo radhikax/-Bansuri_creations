@@ -85,4 +85,12 @@ describe('ProductCard', () => {
       );
     });
   });
+
+  it('requests a 600px Unsplash image with a 2x candidate, lazily', () => {
+    renderCard(makeProduct({ image: 'https://images.unsplash.com/photo-card' }));
+    const img = screen.getByRole('img', { name: 'Brass Diya' });
+    expect(img.getAttribute('src')).toContain('w=600');
+    expect(img.getAttribute('srcset')).toContain('w=1200');
+    expect(img).toHaveAttribute('loading', 'lazy');
+  });
 });

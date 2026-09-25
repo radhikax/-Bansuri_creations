@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/badge';
 import { Product } from '../types';
 import { flyToCart } from '../lib/flyToCart';
 import { useVariantSelection } from '../lib/useVariantSelection';
+import { optimizedImageUrl } from '../lib/images';
 
 interface ProductDetailPageProps {
   products: Product[];
@@ -64,7 +65,7 @@ function ProductDetail({
 
   const handleAddToCart = () => {
     if (addButtonRef.current) {
-      flyToCart(addButtonRef.current, product.image);
+      flyToCart(addButtonRef.current, optimizedImageUrl(product.image, 160));
     }
     onAddToCart(buildCartItem());
 

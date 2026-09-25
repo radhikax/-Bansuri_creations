@@ -1,6 +1,7 @@
 import { useRef, useState, type MouseEvent } from 'react';
 import { AnimatePresence, motion, useMotionValue, useSpring } from 'motion/react';
 import { ShimmerImage } from './ShimmerImage';
+import { imageSrcSet, optimizedImageUrl } from '../lib/images';
 
 interface ImageGalleryProps {
   images: string[];
@@ -47,7 +48,8 @@ export function ImageGallery({ images, alt }: ImageGalleryProps) {
         <AnimatePresence mode="wait">
           <motion.img
             key={selectedIndex}
-            src={images[selectedIndex]}
+            src={optimizedImageUrl(images[selectedIndex], 1200)}
+            srcSet={imageSrcSet(images[selectedIndex], 1200)}
             alt={alt}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, scale: isHovering ? ZOOM_SCALE : 1 }}
@@ -76,7 +78,13 @@ export function ImageGallery({ images, alt }: ImageGalleryProps) {
               }`}
             >
               <span className="relative block w-full h-full">
-                <ShimmerImage src={img} alt={`${alt} thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                <ShimmerImage
+                  src={optimizedImageUrl(img, 200)}
+                  srcSet={imageSrcSet(img, 200)}
+                  loading="lazy"
+                  alt={`${alt} thumbnail ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
               </span>
             </button>
           ))}

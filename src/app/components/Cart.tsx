@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Product } from '../types';
+import { imageSrcSet, optimizedImageUrl } from '../lib/images';
 
 const CHECKOUT_STEPS = ['Shipping', 'Payment', 'Review'] as const;
 type CheckoutStep = 0 | 1 | 2;
@@ -144,8 +145,10 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
               <div className="space-y-4">
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-4">
-                    <img 
-                      src={item.image} 
+                    <img
+                      src={optimizedImageUrl(item.image, 160)}
+                      srcSet={imageSrcSet(item.image, 160)}
+                      loading="lazy"
                       alt={item.name}
                       className="w-24 h-24 object-cover rounded"
                     />
