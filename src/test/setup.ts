@@ -54,3 +54,21 @@ afterEach(() => {
   server.resetHandlers();
 });
 afterAll(() => server.close());
+
+// React 18 drops refs passed to plain function components. Radix (asChild, Slot,
+// Presence) relies on them, so treat React's warning as a test failure.
+const refWarnings: string[] = [];
+const originalConsoleError = console.error.bind(console);
+console.error = (...args: unknown[]) => {
+  const message = args.map((a) => String(a)).join(' ');
+  if (message.includes('cannot be given refs')) {
+    refWarnings.push(message.slice(0, 300));
+  }
+  originalConsoleError(...args);
+};
+afterEach(() => {
+  if (refWarnings.length > 0) {
+    const found = refWarnings.splice(0);
+    throw new Error(`React ref warning(s) — a component needs React.forwardRef:\n${found.join('\n')}`);
+  }
+});
