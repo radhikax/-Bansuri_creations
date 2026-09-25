@@ -78,7 +78,8 @@ describe('App (with mocked API)', () => {
     dialog = await screen.findByRole('dialog');
     // same product merges into one line with quantity 2
     expect(within(dialog).getByText('Shopping Cart (1)')).toBeInTheDocument();
-    expect(within(dialog).getByText('₹1050')).toBeInTheDocument(); // 2 x 500 + 50
+    const summary = within(dialog).getByText('Subtotal').closest('div')!.parentElement!;
+    expect(within(summary).getAllByText('₹1000')).toHaveLength(2); // subtotal and total, free shipping (1000 >= 999 threshold)
   });
 
   it('navigates from a category card to its page', async () => {

@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { Cart, type CartItem } from './Cart';
+import type { ShippingSettings } from '../lib/api';
 import { makeProduct } from '../../test/fixtures';
 
 const diya: CartItem = { ...makeProduct(), quantity: 2 }; // 2 x 500
@@ -11,12 +12,16 @@ const poshak: CartItem = {
   quantity: 1,
 };
 
+// A high threshold keeps the existing ₹50-shipping assertions meaningful.
+const testShipping: ShippingSettings = { flatShippingFee: 50, freeShippingThreshold: 5000 };
+
 function renderCart(items: CartItem[], overrides: Partial<React.ComponentProps<typeof Cart>> = {}) {
   const props = {
     isOpen: true,
     onClose: vi.fn(),
     onUpdateQuantity: vi.fn(),
     onRemoveItem: vi.fn(),
+    shippingSettings: testShipping,
     ...overrides,
   };
   render(<Cart items={items} {...props} />);
@@ -35,6 +40,7 @@ function Harness({ initial, onClose }: { initial: CartItem[]; onClose?: () => vo
         setItems((prev) => prev.map((i) => (i.id === id ? { ...i, quantity } : i)))
       }
       onRemoveItem={(id) => setItems((prev) => prev.filter((i) => i.id !== id))}
+      shippingSettings={testShipping}
     />
   );
 }
@@ -95,6 +101,25 @@ describe('Cart', () => {
   it('does not render when closed', () => {
     renderCart([diya], { isOpen: false });
     expect(screen.queryByText(/shopping cart/i)).not.toBeInTheDocument();
+  });
+
+  it('shows free shipping at or above the store threshold', () => {
+    renderCart([diya, poshak], { shippingSettings: { flatShippingFee: 50, freeShippingThreshold: 999 } }); // 1800
+    const summary = screen.getByText('Subtotal').closest('div')!.parentElement!;
+    expect(within(summary).getByText('Free')).toBeInTheDocument();
+    expect(within(summary).getAllByText('₹1800')).toHaveLength(2); // subtotal and total
+  });
+
+  it('charges the flat fee below the store threshold', () => {
+    renderCart([{ ...diya, quantity: 1 }], { shippingSettings: { flatShippingFee: 75, freeShippingThreshold: 999 } }); // 500
+    expect(screen.getByText('₹75')).toBeInTheDocument();
+    expect(screen.getByText('₹575')).toBeInTheDocument();
+  });
+
+  it('says "Calculated at checkout" and totals the subtotal when settings are unavailable', () => {
+    renderCart([diya, poshak], { shippingSettings: null }); // 1800
+    expect(screen.getByText('Calculated at checkout')).toBeInTheDocument();
+    expect(screen.getAllByText('₹1800')).toHaveLength(2);
   });
 
   describe('checkout flow', () => {

@@ -10,6 +10,8 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Product } from '../types';
 import { imageSrcSet, optimizedImageUrl } from '../lib/images';
+import type { ShippingSettings } from '../lib/api';
+import { calculateShipping } from '../lib/shipping';
 
 const CHECKOUT_STEPS = ['Shipping', 'Payment', 'Review'] as const;
 type CheckoutStep = 0 | 1 | 2;
@@ -46,9 +48,10 @@ interface CartProps {
   items: CartItem[];
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemoveItem: (productId: string) => void;
+  shippingSettings: ShippingSettings | null;
 }
 
-export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: CartProps) {
+export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem, shippingSettings }: CartProps) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [step, setStep] = useState<CheckoutStep>(0);
   const [direction, setDirection] = useState(1);
@@ -57,8 +60,10 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
   const shouldReduceMotion = useReducedMotion();
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = subtotal > 0 ? 50 : 0;
-  const total = subtotal + shipping;
+  // null while the store's shipping settings are loading or unavailable.
+  const shipping = shippingSettings ? calculateShipping(subtotal, shippingSettings) : null;
+  const total = subtotal + (shipping ?? 0);
+  const shippingLabel = shipping === null ? 'Calculated at checkout' : shipping === 0 ? 'Free' : `₹${shipping}`;
 
   const handleCheckout = () => {
     setStep(0);
@@ -208,7 +213,7 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
+                  <span>{shippingLabel}</span>
                 </div>
                 <Separator className="my-2" />
                 <div className="flex justify-between">
@@ -402,7 +407,7 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>Shipping</span>
-                        <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
+                        <span>{shippingLabel}</span>
                       </div>
                       <Separator className="my-1" />
                       <div className="flex justify-between font-semibold">

@@ -9,7 +9,7 @@ import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './pages/CategoryPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { Product } from './types';
-import { getCategories, getProducts } from './lib/api';
+import { getCategories, getProducts, getShippingSettings } from './lib/api';
 import { useApiData } from './lib/useApiData';
 import { adaptCategory, adaptProduct } from './lib/adapters';
 
@@ -43,6 +43,8 @@ function Storefront() {
 
   const categoriesState = useApiData(getCategories);
   const productsState = useApiData(() => getProducts());
+  // Not part of `loading`/`loadError`: the store stays usable without it.
+  const shippingState = useApiData(getShippingSettings);
 
   const categories = categoriesState.data?.map(adaptCategory) ?? [];
   const products = productsState.data?.map(adaptProduct) ?? [];
@@ -142,6 +144,7 @@ function Storefront() {
         items={cartItems}
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveItem}
+        shippingSettings={shippingState.data}
       />
     </div>
   );

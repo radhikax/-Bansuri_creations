@@ -72,3 +72,12 @@ export function getProducts(categorySlug?: string): Promise<ApiProduct[]> {
 export function getProductBySlug(slug: string): Promise<ApiProduct> {
   return fetchJson<ApiProduct>(`/api/products/${encodeURIComponent(slug)}`);
 }
+
+export interface ShippingSettings {
+  flatShippingFee: number;
+  freeShippingThreshold: number;
+}
+
+export function getShippingSettings(): Promise<ShippingSettings> {
+  return fetchJson<ShippingSettings>('/api/settings/shipping');
+}

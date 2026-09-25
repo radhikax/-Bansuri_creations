@@ -26,6 +26,7 @@ export const defaultProducts = [
 
 export const handlers = [
   http.get(`${API_URL}/api/categories`, () => HttpResponse.json(defaultCategories)),
+  http.get(`${API_URL}/api/settings/shipping`, () => HttpResponse.json({ flatShippingFee: 50, freeShippingThreshold: 999 })),
   http.get(`${API_URL}/api/products`, ({ request }) => {
     const category = new URL(request.url).searchParams.get('category');
     const list = category ? defaultProducts.filter((p) => p.category.slug === category) : defaultProducts;
