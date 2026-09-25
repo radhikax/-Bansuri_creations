@@ -2,8 +2,9 @@ import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react'
 import { Separator } from './ui/separator';
 import { Link } from 'react-router-dom';
 import logo from '../../assets/933b21dd0e7f43328405b2f83783e6907d3d0236.png';
+import type { AdaptedCategory } from '../lib/adapters';
 
-export function Footer() {
+export function Footer({ categories }: { categories: AdaptedCategory[] }) {
   return (
     <footer className="bg-muted/50 mt-16">
       <div className="container mx-auto px-4 py-12">
@@ -46,11 +47,13 @@ export function Footer() {
           <div>
             <h3 className="font-semibold mb-4">Categories</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/category/wedding-packing" className="hover:text-primary transition-colors">Wedding Packing</Link></li>
-              <li><Link to="/category/festive-decoration" className="hover:text-primary transition-colors">Festive Decoration</Link></li>
-              <li><Link to="/category/diwali-decor" className="hover:text-primary transition-colors">Diwali Decor</Link></li>
-              <li><Link to="/category/kanha-dresses" className="hover:text-primary transition-colors">Kanha Dresses</Link></li>
-              <li><Link to="/category/customized-gifting" className="hover:text-primary transition-colors">Customized Gifting</Link></li>
+              {categories.map((category) => (
+                <li key={category.slug}>
+                  <Link to={`/category/${category.slug}`} className="hover:text-primary transition-colors">
+                    {category.title}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 

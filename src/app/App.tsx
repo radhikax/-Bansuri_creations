@@ -86,6 +86,7 @@ function Storefront() {
       <Header
         cartItemsCount={totalItems}
         onCartClick={() => setIsCartOpen(true)}
+        categories={categories}
       />
 
       <main className="flex-1">
@@ -136,7 +137,7 @@ function Storefront() {
         )}
       </main>
 
-      <Footer />
+      <Footer categories={categories} />
 
       <Cart
         isOpen={isCartOpen}
