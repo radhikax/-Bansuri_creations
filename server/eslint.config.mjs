@@ -8,6 +8,9 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     languageOptions: { globals: globals.node },
+  },
+  {
+    files: ['src/app.ts'],
     rules: {
       // Express recognizes an error-handling middleware by its arity (4 params).
       // `_next` in src/app.ts must stay a required positional parameter even
