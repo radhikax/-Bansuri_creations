@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch/PR cancels the run still in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Dummy, non-secret values: the test suites mock Razorpay and Resend, and the
+# e2e server never takes a real payment. Real keys never belong in CI config.
+env:
+  JWT_SECRET: ci-jwt-secret-not-for-production
+  RAZORPAY_KEY_ID: ''
+  RAZORPAY_KEY_SECRET: ''
+  RAZORPAY_WEBHOOK_SECRET: ci-webhook-secret
+  RESEND_API_KEY: ''
+  STORE_EMAIL_FROM: orders@example.com
+  STORE_OWNER_EMAIL: owner@example.com
+  FRONTEND_ORIGIN: http://localhost:5173
+
+jobs:
+  frontend:
+    name: Frontend (unit tests + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  backend:
+    name: Backend (tests + type-check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ecommerce
+          POSTGRES_PASSWORD: ecommerce
+          POSTGRES_DB: ecommerce_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ecommerce"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ecommerce:ecommerce@localhost:5433/ecommerce_test
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm test
+      - run: npx tsc --noEmit
+
+  e2e:
+    name: Browser tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ecommerce
+          POSTGRES_PASSWORD: ecommerce
+          POSTGRES_DB: ecommerce_e2e
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ecommerce"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Read by e2e/env.ts, playwright.config.ts (API webServer) and global-setup.
+      E2E_DATABASE_URL: postgresql://ecommerce:ecommerce@localhost:5433/ecommerce_e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: server
+      - run: npx prisma generate
+        working-directory: server
+      - run: npx playwright install --with-deps chromium
+      # Playwright's global setup resets + seeds ecommerce_e2e, then starts the API and Vite.
+      - run: npm run e2e
+      - name: Upload screenshots and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
