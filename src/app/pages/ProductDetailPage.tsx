@@ -53,7 +53,7 @@ function ProductDetail({
     buildCartItem,
   } = useVariantSelection(product);
 
-  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const addButtonRef = useRef<HTMLDivElement>(null);
   const [justAdded, setJustAdded] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout>>();
 

@@ -24,7 +24,7 @@ describe('ui components forward refs (React 18)', () => {
     ['Switch', (ref: React.RefObject<HTMLElement>) => <Switch ref={ref as React.RefObject<HTMLButtonElement>} />, 'BUTTON'],
     ['Card', (ref: React.RefObject<HTMLElement>) => <Card ref={ref as React.RefObject<HTMLDivElement>} />, 'DIV'],
     ['CardHeader', (ref: React.RefObject<HTMLElement>) => <CardHeader ref={ref as React.RefObject<HTMLDivElement>} />, 'DIV'],
-    ['CardTitle', (ref: React.RefObject<HTMLElement>) => <CardTitle ref={ref as React.RefObject<HTMLDivElement>}>t</CardTitle>, undefined],
+    ['CardTitle', (ref: React.RefObject<HTMLElement>) => <CardTitle ref={ref as React.RefObject<HTMLHeadingElement>}>t</CardTitle>, undefined],
     ['CardContent', (ref: React.RefObject<HTMLElement>) => <CardContent ref={ref as React.RefObject<HTMLDivElement>} />, 'DIV'],
     ['Table', (ref: React.RefObject<HTMLElement>) => <Table ref={ref as React.RefObject<HTMLTableElement>} />, 'TABLE'],
     ['TableRow/Cell', (ref: React.RefObject<HTMLElement>) => (
