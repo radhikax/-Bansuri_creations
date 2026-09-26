@@ -1,4 +1,4 @@
-import { X, Plus, Minus, Trash2, CreditCard, Smartphone, Building2, Wallet, Check, ChevronLeft } from 'lucide-react';
+import { Plus, Minus, Trash2, CreditCard, Smartphone, Building2, Wallet, Check, ChevronLeft } from 'lucide-react';
 import { useState, type ChangeEvent } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from './ui/button';

@@ -40,7 +40,7 @@ export function useApiData<T>(fetcher: () => Promise<T>): ApiDataState<T> {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional run-once-on-mount effect; fetcher is deliberately not tracked, see doc comment above
   }, []);
 
   return state;
