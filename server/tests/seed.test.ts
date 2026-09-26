@@ -17,7 +17,7 @@ describe('seedDatabase', () => {
     await seedDatabase(prisma);
 
     expect(await prisma.category.count()).toBe(5);
-    expect(await prisma.product.count()).toBe(14);
+    expect(await prisma.product.count()).toBe(17);
 
     const kanha = await prisma.product.findUniqueOrThrow({
       where: { slug: 'kanha-ji-dress' },
@@ -34,7 +34,7 @@ describe('seedDatabase', () => {
   it('is idempotent when run twice', async () => {
     await seedDatabase(prisma);
     await seedDatabase(prisma);
-    expect(await prisma.product.count()).toBe(14);
+    expect(await prisma.product.count()).toBe(17);
   });
 
   afterAll(async () => {

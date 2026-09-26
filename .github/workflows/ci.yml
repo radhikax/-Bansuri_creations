@@ -1,0 +1,294 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+# A newer push to the same branch/PR cancels the run still in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Dummy, non-secret values: the test suites mock Razorpay and Resend, and the
+# e2e server never takes a real payment. Real keys never belong in CI config.
+env:
+  JWT_SECRET: ci-jwt-secret-not-for-production
+  RAZORPAY_KEY_ID: ''
+  RAZORPAY_KEY_SECRET: ''
+  RAZORPAY_WEBHOOK_SECRET: ci-webhook-secret
+  RESEND_API_KEY: ''
+  STORE_EMAIL_FROM: orders@example.com
+  STORE_OWNER_EMAIL: owner@example.com
+  FRONTEND_ORIGIN: http://localhost:5173
+  API_IMAGE_NAME: ghcr.io/radhikax/bansuri-api
+  WEB_IMAGE_NAME: ghcr.io/radhikax/bansuri-web
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: server
+      - run: npx prisma generate
+        working-directory: server
+      - name: Lint (web)
+        run: npm run lint
+      - name: Lint (API)
+        run: npm run lint
+        working-directory: server
+      - name: Type-check (web)
+        run: npm run typecheck
+      - name: Type-check (API)
+        run: npm run typecheck
+        working-directory: server
+      - name: Audit production dependencies (web)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit production dependencies (API)
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: server
+      - name: Report dev-dependency advisories (non-blocking)
+        run: |
+          npm audit --audit-level=high || true
+          (cd server && npm audit --audit-level=high) || true
+
+  frontend-test:
+    name: Frontend (unit tests + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  backend-test:
+    name: Backend (tests + type-check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ecommerce
+          POSTGRES_PASSWORD: ecommerce
+          POSTGRES_DB: ecommerce_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ecommerce"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ecommerce:ecommerce@localhost:5433/ecommerce_test
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm test
+      - run: npx tsc --noEmit
+
+  e2e:
+    name: Browser tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ecommerce
+          POSTGRES_PASSWORD: ecommerce
+          POSTGRES_DB: ecommerce_e2e
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ecommerce"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      E2E_DATABASE_URL: postgresql://ecommerce:ecommerce@localhost:5433/ecommerce_e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: server
+      - run: npx prisma generate
+        working-directory: server
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - name: Upload screenshots and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  docker:
+    name: Docker (build, scan, smoke test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v4
+      - name: Build API image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./server
+          load: true
+          tags: bansuri-api:ci
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - name: Build web image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: bansuri-web:ci
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+      - name: Scan API image (fixable HIGH/CRITICAL fail)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: bansuri-api:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Scan web image (fixable HIGH/CRITICAL fail)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: bansuri-web:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Smoke test the production stack
+        env:
+          API_IMAGE: bansuri-api:ci
+          WEB_IMAGE: bansuri-web:ci
+          ENV_FILE: deploy/ci.env
+        run: |
+          set -euo pipefail
+          docker compose -f docker-compose.prod.yml up -d --no-build
+          for i in $(seq 1 60); do
+            if docker compose -f docker-compose.prod.yml ps web | grep -q '(healthy)'; then break; fi
+            sleep 2
+          done
+          docker compose -f docker-compose.prod.yml ps
+          curl -fsS http://localhost:8080/ | grep -qi '<html'
+          test "$(curl -fsS http://localhost:8080/api/health)" = '{"status":"ok"}'
+          curl -fsS http://localhost:8080/api/categories | grep -q '^\['
+          curl -fsS -o /dev/null http://localhost:8080/admin/settings
+          echo "Smoke test passed"
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.prod.yml logs --no-color --tail 200
+        env:
+          ENV_FILE: deploy/ci.env
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.prod.yml down -v
+        env:
+          ENV_FILE: deploy/ci.env
+
+  ci-success:
+    name: ci-success
+    runs-on: ubuntu-latest
+    needs: [quality, frontend-test, backend-test, e2e, docker]
+    if: always()
+    steps:
+      - name: All required jobs passed
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
+            echo "A required job did not succeed: ${{ toJSON(needs) }}"
+            exit 1
+          fi
+
+  publish:
+    name: Publish images
+    runs-on: ubuntu-latest
+    needs: ci-success
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta-api
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.API_IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+      - id: meta-web
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.WEB_IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: ./server
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha,scope=api
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          cache-from: type=gha,scope=web
