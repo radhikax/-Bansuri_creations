@@ -51,7 +51,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden group h-full flex flex-colhover:scale-[1.03] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-[transform,box-shadow] duration-200 ease-out motion-reduce:hover:scale-100 motion-reduce:transition-shadow">
+    <Card className="overflow-hidden group h-full flex flex-colhover:scale-[1.03] hover:shadow-[0_8px_24px_var(--tw-shadow-color)] hover:shadow-maroon-900/12 transition-[transform,box-shadow] duration-200 ease-out motion-reduce:hover:scale-100 motion-reduce:transition-shadow">
       <Link href={`/product/${product.slug}`} className="relative h-64 shrink-0 overflow-hidden block">
         <ShimmerImage
           src={optimizedImageUrl(product.image, 600)}
@@ -61,7 +61,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           className="w-full h-full object-cover group-hover:scale-[1.08] transition-transform duration-500 ease-out motion-reduce:group-hover:scale-100"
         />
         {showDiscount && (
-          <Badge className="absolute top-3 left-3 bg-accent-rose text-accent-rose-foreground border-none">
+          <Badge className="absolute top-3 left-3 bg-maroon-200 text-maroon-900 border-none">
             {discount}% OFF
           </Badge>
         )}
@@ -77,7 +77,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           <Heart className="h-4 w-4" />
         </Button>
         {!inStock && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-maroon-900/50 flex items-center justify-center">
             <Badge variant="secondary">Out of Stock</Badge>
           </div>
         )}
@@ -89,15 +89,14 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           <h3 className="mb-2 line-clamp-2 min-h-[3rem] hover:text-primary transition-colors">{product.name}</h3>
         </Link>
         <div
-          className={`flex items-center gap-1.5 text-xs mb-2 h-4 ${inStock ? '' : 'invisible'}`}
-          style={{ color: '#5c6b4f' }}
+          className={`flex items-center gap-1.5 text-xs mb-2 h-4 text-muted-foreground ${inStock ? '' : 'invisible'}`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-accent-sage" />
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
           In stock
         </div>
         <div className="flex items-center gap-1 mb-2">
           {[...Array(5)].map((_, i) => (
-            <span key={i} className="text-yellow-400">
+            <span key={i} className={i < Math.floor(product.rating) ? 'text-maroon-800' : 'text-maroon-200'}>
               {i < Math.floor(product.rating) ? '★' : '☆'}
             </span>
           ))}

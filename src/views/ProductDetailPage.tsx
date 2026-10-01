@@ -97,7 +97,7 @@ function ProductDetail({
 
             <div className="flex items-center gap-1 mb-4">
               {[...Array(5)].map((_, i) => (
-                <span key={i} className="text-yellow-400">
+                <span key={i} className={i < Math.floor(product.rating) ? 'text-maroon-800' : 'text-maroon-200'}>
                   {i < Math.floor(product.rating) ? '★' : '☆'}
                 </span>
               ))}
@@ -146,15 +146,15 @@ function ProductDetail({
                 </span>
               )}
               {showDiscount && (
-                <Badge className="bg-accent-rose text-accent-rose-foreground border-none">
+                <Badge className="bg-maroon-200 text-maroon-900 border-none">
                   {discount}% OFF
                 </Badge>
               )}
             </div>
 
             {inStock ? (
-              <div className="flex items-center gap-1.5 text-sm mb-6" style={{ color: '#5c6b4f' }}>
-                <span className="w-1.5 h-1.5 rounded-full bg-accent-sage" />
+              <div className="flex items-center gap-1.5 text-sm mb-6 text-muted-foreground">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
                 In stock
               </div>
             ) : (

@@ -28,7 +28,7 @@ export function flyToCart(sourceEl: HTMLElement, imageSrc: string): void {
   ghost.style.objectFit = 'cover';
   ghost.style.pointerEvents = 'none';
   ghost.style.zIndex = '9999';
-  ghost.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+  ghost.style.boxShadow = '0 4px 12px color-mix(in srgb, var(--maroon-900) 20%, transparent)';
   document.body.appendChild(ghost);
 
   const deltaX = endRect.left + endRect.width / 2 - (startRect.left + startRect.width / 2);

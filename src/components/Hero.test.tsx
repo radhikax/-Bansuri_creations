@@ -9,10 +9,10 @@ describe('Hero', () => {
     expect(screen.getByRole('link', { name: 'View Collections' })).toHaveAttribute('href', '#categories');
   });
 
-  it('renders "View Collections" as a transparent button with white text', () => {
+  it('renders "View Collections" as a transparent button with beige text', () => {
     render(<Hero />);
     const link = screen.getByRole('link', { name: 'View Collections' });
     expect(link.className).toContain('bg-transparent');
-    expect(link.className).toContain('text-white');
+    expect(link.className).toContain('text-beige-50');
   });
 });
