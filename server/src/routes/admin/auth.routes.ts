@@ -10,7 +10,7 @@ export const adminAuthRouter = Router();
 
 const MIN_PASSWORD_LENGTH = 8;
 
-const changePasswordSchema = z.object({
+export const changePasswordSchema = z.object({
   currentPassword: z.string(),
   newPassword: z.string(),
 });

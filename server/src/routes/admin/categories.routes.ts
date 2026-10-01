@@ -12,7 +12,7 @@ adminCategoriesRouter.get('/', asyncHandler(async (_req, res) => {
   res.json(categories);
 }));
 
-const categorySchema = z.object({
+export const categorySchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   description: z.string().min(1),

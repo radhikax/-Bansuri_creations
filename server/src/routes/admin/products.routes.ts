@@ -15,14 +15,14 @@ adminProductsRouter.get('/', asyncHandler(async (_req, res) => {
   res.json(products);
 }));
 
-const variantSchema = z.object({
+export const variantSchema = z.object({
   label: z.string().min(1),
   price: z.number().int().positive().optional(),
   stock: z.number().int().min(0),
   sku: z.string().min(1),
 });
 
-const createProductSchema = z.object({
+export const createProductSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   description: z.string().min(1),
@@ -60,7 +60,7 @@ adminProductsRouter.post('/', asyncHandler(async (req, res) => {
   res.status(201).json(product);
 }));
 
-const updateProductSchema = z.object({
+export const updateProductSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
   categoryId: z.string().min(1).optional(),
@@ -81,7 +81,7 @@ adminProductsRouter.put('/:id', asyncHandler(async (req, res) => {
   res.json(product);
 }));
 
-const upsertVariantSchema = variantSchema.extend({ id: z.string().optional() });
+export const upsertVariantSchema = variantSchema.extend({ id: z.string().optional() });
 
 adminProductsRouter.put('/:id/variants/:variantId', asyncHandler(async (req, res) => {
   const parsed = upsertVariantSchema.safeParse({ ...req.body, id: req.params.variantId });

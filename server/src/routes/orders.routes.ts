@@ -9,7 +9,7 @@ import { getShippingConfig } from '../services/shippingConfig';
 
 export const ordersRouter = Router();
 
-const checkoutSchema = z.object({
+export const checkoutSchema = z.object({
   customerName: z.string().min(1),
   customerPhone: z.string().min(6),
   customerEmail: z.string().email(),

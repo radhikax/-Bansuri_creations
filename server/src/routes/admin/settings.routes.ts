@@ -16,7 +16,7 @@ adminSettingsRouter.get('/', asyncHandler(async (_req, res) => {
   res.json(settings);
 }));
 
-const settingsSchema = z.object({
+export const settingsSchema = z.object({
   flatShippingFee: z.number().int().min(0),
   freeShippingThreshold: z.number().int().min(0),
 });

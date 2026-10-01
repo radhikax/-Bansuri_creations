@@ -27,7 +27,7 @@ adminOrdersRouter.get('/', asyncHandler(async (req, res) => {
   res.json(orders);
 }));
 
-const statusUpdateSchema = z.object({ status: z.enum(adminSettableStatusValues) });
+export const statusUpdateSchema = z.object({ status: z.enum(adminSettableStatusValues) });
 
 adminOrdersRouter.put('/:id/status', asyncHandler(async (req, res) => {
   const parsed = statusUpdateSchema.safeParse(req.body);
