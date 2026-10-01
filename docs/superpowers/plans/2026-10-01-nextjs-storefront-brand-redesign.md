@@ -82,6 +82,17 @@
 - **Package versions:**
   - The spec names `@asteasolutions/zod-to-openapi` without a version. 9.x requires zod 4, so the plan pins **7.3.4**, which supports the server's zod 3.23.8.
   - `vite` stays as a **dev dependency only**, because Vitest runs on it. It's no longer used to build or serve the app.
+- **Storefront rendering (pre-flight ruling):** storefront routes (`app/page.tsx`,
+  `app/category/[slug]`, `app/product/[slug]`, `app/sitemap.ts`) and the root layout's nav data use
+  **`export const dynamic = 'force-dynamic'`**. They still cache every API call with
+  `fetch(..., { next: { revalidate: 300, tags } })`.
+  - Reason: param-less routes (`/`, the layout) would otherwise be prerendered at `next build` and
+    call the API, so builds would fail without a running API. That breaks spec §1.2's rule that
+    builds never call the API.
+  - What stays the same: SEO (full server-rendered HTML), instant refresh (`revalidateTag` clears
+    the tagged data cache) and speed (data served from cache).
+  - Ignore any "route table shows ISR" wording below. The route table will show these routes as
+    dynamic (ƒ).
 - **Admin pages in the visual check:** spec §2.6 lists the logged-in admin pages (products,
   orders, settings). `visual.spec.ts` covers **`/admin/login`** only.
   - Reason: `e2e/admin.spec.ts` changes the seeded admin password earlier in the same run, so a
