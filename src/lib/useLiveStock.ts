@@ -15,15 +15,7 @@ export function useLiveStock(slug: string, initial: ProductVariant[]): ProductVa
     let cancelled = false;
 
     browserApi
-      .GET('/api/products/{slug}', {
-        params: { path: { slug } },
-        // openapi-fetch's client captures `globalThis.fetch` by value when
-        // `browserApi` is created (module load) — before test tooling like
-        // MSW patches `globalThis.fetch`. This wrapper looks `fetch` up
-        // lazily at call time instead, which is a no-op in production but
-        // lets the mock take effect in tests.
-        fetch: (...args: Parameters<typeof fetch>) => fetch(...args),
-      })
+      .GET('/api/products/{slug}', { params: { path: { slug } } })
       .then(({ data, error }) => {
         if (cancelled || error || !data) return;
         const basePrice = data.basePrice;
