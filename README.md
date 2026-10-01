@@ -47,9 +47,28 @@
   2. `docker compose -f docker-compose.prod.yml up -d` pulls the published images
      (add `--build` to build locally). The `migrate` service applies migrations
      before `api` starts; the shop is on http://localhost:8080.
-  3. First-time data: run `npm run prisma:seed` from `server/` on a dev machine
-     with `DATABASE_URL` pointed at the production database, then change the
-     admin password under Settings → Account.
+  3. First-time data is loaded once, after `migrate` has run, by a throwaway Node
+     container on the stack's network using the repo's `server/` folder, with required
+     admin credentials (never the defaults). Run from the repo root; it reads values
+     from `.env.production` for the DB password and requires the two SEED vars to be
+     exported first:
+
+     ```bash
+     export SEED_ADMIN_EMAIL=you@yourdomain.com
+     export SEED_ADMIN_PASSWORD='a-long-unique-password'
+     docker run --rm --network bansuri_default \
+       -v "$PWD/server:/app" -w /app \
+       --env-file .env.production \
+       -e DATABASE_URL="postgresql://ecommerce:<POSTGRES_PASSWORD>@postgres:5432/ecommerce" \
+       -e SEED_ADMIN_EMAIL -e SEED_ADMIN_PASSWORD \
+       node:24-bookworm-slim sh -c "npm ci && npx prisma generate && npx tsx prisma/seed.ts"
+     ```
+
+     Replace `<POSTGRES_PASSWORD>` with the value from `.env.production` (or reuse its
+     `DATABASE_URL`, which already points at `postgres:5432`). The seed is idempotent
+     (re-running it never changes an existing admin's password); never run it without
+     `SEED_ADMIN_PASSWORD` set, or the admin gets the public default. Then log in at
+     `/admin` and confirm under Settings → Account.
   4. Schedule the abandoned-order job hourly:
      `docker compose -f docker-compose.prod.yml run --rm api node dist/jobs/cancelAbandonedOrders.js`.
   5. Serve it over HTTPS (host platform or a reverse proxy) — the admin cookie is `secure` in production.
