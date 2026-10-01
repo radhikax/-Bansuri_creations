@@ -1204,7 +1204,43 @@ CMD ["node", "server.js"]
 - remove `index.html` and other Vite-only entries
 - do **not** ignore `app/` or `scripts/`
 
+- [ ] **Step 1b: Keep what nginx gave us (from the CI plan's final review)**
+
+Nginx set security headers and caching. In `next.config.ts`, add:
+
+```ts
+async headers() {
+  return [{
+    source: '/:path*',
+    headers: [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+    ],
+  }];
+},
+```
+
+- Keep `compress: true`, which is the Next.js default. It provides gzip.
+- `/_next/static/*` is already served `immutable` by Next.js.
+- In `.github/workflows/ci.yml`, add this assertion to the smoke test:
+  `curl -fsSI http://localhost:8080/ | grep -qi '^x-content-type-options: nosniff'`.
+- Add a second assertion, proving the web container received the shared secret:
+  `curl -fsS -X POST http://localhost:8080/internal/revalidate -H 'content-type: application/json' -H 'x-revalidate-secret: ci-dummy-revalidate-secret' -d '{"tags":["catalogue"]}' | grep -q revalidated`.
+
+**`NEXT_PUBLIC_SITE_URL` is baked in at build time**, so the Dockerfile's build stage needs:
+- `ARG NEXT_PUBLIC_SITE_URL=http://localhost:8080`
+- `ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL`
+
+It's also passed:
+- as a compose `build.args` entry
+- as `build-args: NEXT_PUBLIC_SITE_URL=http://localhost:8080` in both `docker/build-push-action` web steps (docker job and publish job) in `ci.yml`
+
+`API_INTERNAL_URL` follows the same pattern, as both a build arg and a runtime env.
+
 - [ ] **Step 2: Compose + env files**
+
+**Correction from the CI plan's final review:** the `web` service must read secrets from the **same env file** as `api`. Use `env_file: ${ENV_FILE:-.env.production}`. Its `environment:` block holds only the literal `API_INTERNAL_URL: http://api:4000`. **Never use `${REVALIDATE_SECRET}` interpolation**, which reads the shell or a `.env` file, not `ENV_FILE`, and would leave the secret empty. The instructions below are amended accordingly.
 
 In `docker-compose.prod.yml`:
 - the `web` service gets `environment: { API_INTERNAL_URL: http://api:4000, REVALIDATE_SECRET: ${REVALIDATE_SECRET}, NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:8080} }`
