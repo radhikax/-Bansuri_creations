@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../../db';
 import { requireAdminAuth } from '../../middleware/adminAuth';
 import { asyncHandler } from '../../middleware/asyncHandler';
+import { revalidate } from '../../services/revalidate';
 
 export const adminSettingsRouter = Router();
 adminSettingsRouter.use(requireAdminAuth);
@@ -31,5 +32,6 @@ adminSettingsRouter.put('/', asyncHandler(async (req, res) => {
     update: parsed.data,
     create: { id: 1, ...parsed.data },
   });
+  revalidate(['catalogue']);
   res.json(settings);
 }));

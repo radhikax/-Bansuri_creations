@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { validateEnv, EnvValidationError } from '../../src/config/env';
 
 const devBase = {
@@ -56,6 +56,31 @@ describe('validateEnv', () => {
     const problems = problemsOf({ ...withoutSecret, FRONTEND_ORIGIN: 'not a url' });
     expect(problems.some((p) => p.startsWith('RAZORPAY_KEY_SECRET'))).toBe(true);
     expect(problems.some((p) => p.startsWith('FRONTEND_ORIGIN'))).toBe(true);
+  });
+
+  it('warns in production when WEB_INTERNAL_URL/REVALIDATE_SECRET are not set', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    validateEnv(prodBase);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'REVALIDATE_SECRET/WEB_INTERNAL_URL not set: pages refresh on their 5-minute timer only',
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('does not warn in production when WEB_INTERNAL_URL and REVALIDATE_SECRET are set', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    validateEnv({ ...prodBase, WEB_INTERNAL_URL: 'http://web:8080', REVALIDATE_SECRET: 's3cret' });
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it('accepts an empty-string WEB_INTERNAL_URL as unset, without failing validation', () => {
+    expect(problemsOf({ ...devBase, WEB_INTERNAL_URL: '' })).toEqual([]);
+  });
+
+  it('rejects a non-empty WEB_INTERNAL_URL that is not a valid URL', () => {
+    const problems = problemsOf({ ...devBase, WEB_INTERNAL_URL: 'not a url' });
+    expect(problems.some((p) => p.startsWith('WEB_INTERNAL_URL'))).toBe(true);
   });
 
   it('never includes a variable value in its problems or message', () => {

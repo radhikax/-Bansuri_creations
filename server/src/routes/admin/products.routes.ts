@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../../db';
 import { requireAdminAuth } from '../../middleware/adminAuth';
 import { asyncHandler } from '../../middleware/asyncHandler';
+import { revalidate } from '../../services/revalidate';
 
 export const adminProductsRouter = Router();
 adminProductsRouter.use(requireAdminAuth);
@@ -57,6 +58,7 @@ adminProductsRouter.post('/', asyncHandler(async (req, res) => {
     include: { variants: true },
   });
 
+  revalidate(['catalogue', `product:${product.slug}`]);
   res.status(201).json(product);
 }));
 
@@ -77,7 +79,13 @@ adminProductsRouter.put('/:id', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid product payload', details: parsed.error.flatten() });
   }
 
+  const before = await prisma.product.findUnique({ where: { id: req.params.id } });
   const product = await prisma.product.update({ where: { id: req.params.id }, data: parsed.data });
+
+  // The slug isn't editable via this payload today, but this stays correct if that changes.
+  const slugs = new Set([product.slug, before?.slug].filter((slug): slug is string => Boolean(slug)));
+  revalidate(['catalogue', ...Array.from(slugs, (slug) => `product:${slug}`)]);
+
   res.json(product);
 }));
 
@@ -89,7 +97,7 @@ adminProductsRouter.put('/:id/variants/:variantId', asyncHandler(async (req, res
     return res.status(400).json({ error: 'Invalid variant payload', details: parsed.error.flatten() });
   }
 
-  const variant = await prisma.productVariant.update({
+  const { product, ...variant } = await prisma.productVariant.update({
     where: { id: req.params.variantId },
     data: {
       label: parsed.data.label,
@@ -97,6 +105,11 @@ adminProductsRouter.put('/:id/variants/:variantId', asyncHandler(async (req, res
       stock: parsed.data.stock,
       sku: parsed.data.sku,
     },
+    include: { product: true },
   });
+
+  revalidate(['catalogue', `product:${product.slug}`]);
+  // The documented response is the variant alone (ProductVariantSchema); `product` was
+  // only fetched to know which product's cached pages to revalidate.
   res.json(variant);
 }));

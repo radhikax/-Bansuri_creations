@@ -9,9 +9,15 @@ export class EnvValidationError extends Error {
 
 const nonEmpty = z.string().min(1, 'is required');
 
+// An empty string (e.g. an unset variable in a shared .env file) is treated the
+// same as the variable being absent, rather than failing validation.
+const optionalUrl = z.union([z.literal(''), z.string().url('must be a URL')]).optional();
+
 const baseSchema = z.object({
   DATABASE_URL: nonEmpty,
   JWT_SECRET: nonEmpty,
+  WEB_INTERNAL_URL: optionalUrl,
+  REVALIDATE_SECRET: z.string().optional(),
 });
 
 const productionSchema = baseSchema.extend({
@@ -29,11 +35,16 @@ const productionSchema = baseSchema.extend({
 export function validateEnv(env: NodeJS.ProcessEnv = process.env): void {
   const schema = env.NODE_ENV === 'production' ? productionSchema : baseSchema;
   const result = schema.safeParse(env);
-  if (result.success) return;
-  const problems = result.error.issues.map((issue) => {
-    const name = issue.path.join('.') || '(root)';
-    const rule = issue.code === 'invalid_type' ? 'is required' : issue.message;
-    return `${name} ${rule}`;
-  });
-  throw new EnvValidationError(problems);
+  if (!result.success) {
+    const problems = result.error.issues.map((issue) => {
+      const name = issue.path.join('.') || '(root)';
+      const rule = issue.code === 'invalid_type' ? 'is required' : issue.message;
+      return `${name} ${rule}`;
+    });
+    throw new EnvValidationError(problems);
+  }
+
+  if (env.NODE_ENV === 'production' && (!env.WEB_INTERNAL_URL || !env.REVALIDATE_SECRET)) {
+    console.warn('REVALIDATE_SECRET/WEB_INTERNAL_URL not set: pages refresh on their 5-minute timer only');
+  }
 }
