@@ -21,19 +21,4 @@ export default defineConfig({
       '/api': 'http://localhost:4000',
     },
   },
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/test/setup.ts'],
-    css: false,
-    testTimeout: 20000,
-    hookTimeout: 20000,
-    include: ['src/**/*.test.{ts,tsx}'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html'],
-      include: ['src/app/**/*.{ts,tsx}'],
-      exclude: ['src/app/components/ui/**', 'src/app/components/figma/**', 'src/app/types.ts','src/**/*.test.{ts,tsx}'],
-    },
-  },
 })

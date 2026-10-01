@@ -1,5 +1,5 @@
-import type { ApiCategory, ApiProduct, ApiProductVariant } from '../app/lib/api';
-import type { Product } from '../app/types';
+import type { ApiCategory, ApiProduct, ApiProductVariant } from '../lib/api';
+import type { Product } from '../types';
 
 // The API clients default to the page's own origin (see src/app/lib/api.ts).
 export const API_URL = window.location.origin;

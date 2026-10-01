@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
+import nextPlugin from '@next/eslint-plugin-next';
 import globals from 'globals';
 
 export default tseslint.config(
@@ -10,12 +11,13 @@ export default tseslint.config(
       'coverage/',
       'test-results/',
       'playwright-report/',
+      '.next/',
       'server/',
       '.claude/',
       '.superpowers/',
       // Vendored shadcn/ui kit and Figma template, already excluded from coverage.
-      'src/app/components/ui/**',
-      'src/app/components/figma/**',
+      'src/components/ui/**',
+      'src/components/figma/**',
     ],
   },
   js.configs.recommended,
@@ -27,10 +29,26 @@ export default tseslint.config(
     rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
+      // Destructuring a prop solely to drop it before spreading `...rest`
+      // (e.g. next/image props a plain <img> test double can't use) is
+      // intentionally unused — the leading underscore signals that.
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   {
-    files: ['e2e/**/*.ts', '*.config.{js,ts}'],
+    files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+    plugins: { '@next/next': nextPlugin },
+    rules: {
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs['core-web-vitals'].rules,
+      // The storefront's images go through a bespoke Unsplash URL optimizer
+      // (src/lib/images.ts) with their own srcSet/loading logic, not
+      // next/image — so this rule has nothing useful to flag here.
+      '@next/next/no-img-element': 'off',
+    },
+  },
+  {
+    files: ['e2e/**/*.ts', '*.config.{js,ts}', 'scripts/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
 );
