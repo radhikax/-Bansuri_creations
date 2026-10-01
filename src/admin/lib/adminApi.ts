@@ -81,9 +81,10 @@ export interface CategoryInput {
   icon: string;
 }
 
-// Same-origin by default: Vite proxies /api in dev and the host rewrites it in
-// production, so the admin cookie stays first-party. VITE_API_BASE_URL overrides.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? window.location.origin;
+// Same-origin by default: next.config.ts rewrites /api in dev and the host
+// rewrites it in production, so the admin cookie stays first-party.
+// NEXT_PUBLIC_API_BASE_URL overrides.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
 
 export class AdminUnauthorizedError extends Error {
   constructor() {

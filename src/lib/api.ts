@@ -39,8 +39,9 @@ export interface ApiProduct {
 }
 
 // Same-origin by default: Vite proxies /api in dev and the host rewrites it in
-// production, so the admin cookie stays first-party. VITE_API_BASE_URL overrides.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? window.location.origin;
+// production, via next.config.ts's rewrite, so the admin cookie stays
+// first-party. NEXT_PUBLIC_API_BASE_URL overrides.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
 
 export const REQUEST_TIMEOUT_MS = 10_000;
 
