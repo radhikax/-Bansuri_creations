@@ -15,10 +15,7 @@ function renderHeader(count: number, onCartClick = vi.fn(), cats: AdaptedCategor
   return { onCartClick };
 }
 
-// next/link has no mounted app router in these unit tests, so clicking a
-// <Link> throws ("Router action dispatched before initialization"). The
-// "opens a phone menu..." test below clicks one. re-enabled in Task 5.
-describe.skip('Header', () => {
+describe('Header', () => {
   it('links the brand to home and lists the categories it is given', () => {
     renderHeader(0);
     expect(screen.getByRole('link', { name: /bansuri creations/i })).toHaveAttribute('href', '/');

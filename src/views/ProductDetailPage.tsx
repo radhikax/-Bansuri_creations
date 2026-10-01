@@ -1,6 +1,7 @@
+'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { ShoppingCart, Check, ChevronLeft } from 'lucide-react';
 import { ImageGallery } from '../components/ImageGallery';
@@ -10,38 +11,18 @@ import { Badge } from '../components/ui/badge';
 import { Product } from '../types';
 import { flyToCart } from '../lib/flyToCart';
 import { useVariantSelection } from '../lib/useVariantSelection';
-import { optimizedImageUrl } from '../lib/images';
+import { useLiveStock } from '../lib/useLiveStock';
+import { useCart } from '../components/cart/CartProvider';
 
 interface ProductDetailPageProps {
-  products: Product[];
-  onAddToCart: (product: Product) => void;
-}
-
-export function ProductDetailPage({ products, onAddToCart }: ProductDetailPageProps) {
-  const { slug } = useParams<{ slug: string }>();
-  const product = products.find((p) => p.slug === slug);
-
-  if (!product) {
-    return (
-      <div className="container mx-auto px-4 py-24 text-center">
-        <p className="text-lg mb-4">We couldn't find that product.</p>
-        <Link href="/" className="text-primary hover:underline">
-          Back to shopping
-        </Link>
-      </div>
-    );
-  }
-
-  return <ProductDetail product={product} onAddToCart={onAddToCart} />;
-}
-
-function ProductDetail({
-  product,
-  onAddToCart,
-}: {
   product: Product;
-  onAddToCart: (product: Product) => void;
-}) {
+}
+
+export function ProductDetailPage({ product }: ProductDetailPageProps) {
+  const { add } = useCart();
+  const liveVariants = useLiveStock(product.slug, product.variants ?? []);
+  const liveProduct: Product = { ...product, variants: liveVariants };
+
   const {
     variants,
     hasMultipleVariants,
@@ -52,7 +33,7 @@ function ProductDetail({
     showDiscount,
     discount,
     buildCartItem,
-  } = useVariantSelection(product);
+  } = useVariantSelection(liveProduct);
 
   const addButtonRef = useRef<HTMLDivElement>(null);
   const [justAdded, setJustAdded] = useState(false);
@@ -66,9 +47,9 @@ function ProductDetail({
 
   const handleAddToCart = () => {
     if (addButtonRef.current) {
-      flyToCart(addButtonRef.current, optimizedImageUrl(product.image, 160));
+      flyToCart(addButtonRef.current, product.image);
     }
-    onAddToCart(buildCartItem());
+    add(buildCartItem());
 
     setJustAdded(true);
     if (resetTimer.current) clearTimeout(resetTimer.current);

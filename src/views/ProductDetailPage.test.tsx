@@ -1,30 +1,49 @@
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { ProductDetailPage } from './ProductDetailPage';
-import { makeProduct, sizeVariants } from '../test/fixtures';
+import { CartProvider, useCart } from '../components/cart/CartProvider';
+import { server } from '../test/server';
+import { API_URL, makeApiCategory, makeApiProduct, makeApiVariant, makeProduct, sizeVariants } from '../test/fixtures';
+import type { ApiProduct } from '../lib/api';
 import type { Product } from '../types';
 
-// `slug` is unused now: ProductDetailPage reads its slug from next/navigation's
-// useParams, which src/test/next-mocks.ts stubs to always return {}. Real
-// per-route params come back in Task 5 with an actual app/product/[slug] route.
-function renderAt(slug: string, products: Product[], onAddToCart = vi.fn()) {
-  void slug;
-  render(<ProductDetailPage products={products} onAddToCart={onAddToCart} />);
-  return { onAddToCart };
+function CartProbe() {
+  const { items } = useCart();
+  return <div data-testid="cart-items">{JSON.stringify(items)}</div>;
 }
 
-// Needs a real dynamic route to supply the :slug param — see the note on
-// renderAt above. re-enabled in Task 5.
-describe.skip('ProductDetailPage', () => {
-  it('shows a not-found message with a link home for an unknown slug', () => {
-    renderAt('missing', [makeProduct()]);
-    expect(screen.getByText("We couldn't find that product.")).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to shopping' })).toHaveAttribute('href', '/');
+// useLiveStock fetches GET /api/products/:slug on mount; mirror the rendered
+// product's own data back so the "live" refresh is a no-op and assertions
+// stay meaningful regardless of whether that fetch has resolved yet.
+function apiProductFor(product: Product): ApiProduct {
+  return makeApiProduct({
+    slug: product.slug,
+    name: product.name,
+    basePrice: product.price,
+    originalPrice: product.originalPrice ?? null,
+    imageUrl: product.image,
+    images: product.images,
+    rating: product.rating,
+    category: makeApiCategory({ name: product.category, slug: product.categorySlug }),
+    variants: (product.variants ?? []).map((v) => makeApiVariant({ id: v.id, label: v.label, price: v.price, stock: v.stock })),
   });
+}
 
+function renderDetail(product: Product) {
+  server.use(http.get(`${API_URL}/api/products/:slug`, () => HttpResponse.json(apiProductFor(product))));
+  render(
+    <CartProvider>
+      <ProductDetailPage product={product} />
+      <CartProbe />
+    </CartProvider>,
+  );
+}
+
+describe('ProductDetailPage', () => {
   it('renders product details', () => {
-    renderAt('brass-diya', [makeProduct({ price: 500, originalPrice: 625 })]);
+    renderDetail(makeProduct({ price: 500, originalPrice: 625 }));
     expect(screen.getByRole('heading', { level: 1, name: 'Brass Diya' })).toBeInTheDocument();
     expect(screen.getByText('Diwali Decor')).toBeInTheDocument();
     expect(screen.getByText('₹500')).toBeInTheDocument();
@@ -34,35 +53,25 @@ describe.skip('ProductDetailPage', () => {
   });
 
   it('shows a thumbnail per image when there are several, and none for one', () => {
-    renderAt('brass-diya', [makeProduct({ images: ['a.jpg', 'b.jpg', 'c.jpg'] })]);
+    renderDetail(makeProduct({ images: ['a.jpg', 'b.jpg', 'c.jpg'] }));
     expect(screen.getAllByAltText(/Brass Diya thumbnail/)).toHaveLength(3);
   });
 
-  it('switches the main image when a thumbnail is clicked', async () => {
-    const user = userEvent.setup();
-    renderAt('brass-diya', [makeProduct({ images: ['a.jpg', 'b.jpg'] })]);
-    await user.click(screen.getByAltText('Brass Diya thumbnail 2').closest('button')!);
-    await waitFor(() => {
-      const main = screen.getAllByAltText('Brass Diya');
-      expect(main.some((img) => img.getAttribute('src') === 'b.jpg')).toBe(true);
-    });
-  });
-
   it('shows no thumbnails for a single image', () => {
-    renderAt('brass-diya', [makeProduct()]);
+    renderDetail(makeProduct());
     expect(screen.queryByAltText(/thumbnail/)).not.toBeInTheDocument();
   });
 
   it('adds to cart and shows confirmation', async () => {
     const user = userEvent.setup();
-    const { onAddToCart } = renderAt('brass-diya', [makeProduct()]);
+    renderDetail(makeProduct());
     await user.click(screen.getByRole('button', { name: /add to cart/i }));
-    expect(onAddToCart).toHaveBeenCalledWith(expect.objectContaining({ id: 'prod-1' }));
+    expect(screen.getByTestId('cart-items')).toHaveTextContent('"id":"prod-1"');
     expect(await screen.findByText('Added!')).toBeInTheDocument();
   });
 
   it('shows out-of-stock and disables the button', () => {
-    renderAt('brass-diya', [makeProduct({ inStock: false })]);
+    renderDetail(makeProduct({ inStock: false }));
     expect(screen.getByText('Out of Stock')).toBeInTheDocument();
     expect(screen.queryByText('In stock')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add to cart/i })).toBeDisabled();
@@ -70,7 +79,7 @@ describe.skip('ProductDetailPage', () => {
 
   it('lets the shopper pick a variant, updating price and the cart item', async () => {
     const user = userEvent.setup();
-    const { onAddToCart } = renderAt('brass-diya', [makeProduct({ variants: sizeVariants })]);
+    renderDetail(makeProduct({ variants: sizeVariants }));
     expect(screen.getByText('₹400')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'XL' })).toBeDisabled();
 
@@ -78,8 +87,9 @@ describe.skip('ProductDetailPage', () => {
     expect(await screen.findByText('₹700')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /add to cart/i }));
-    expect(onAddToCart).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'prod-1::v-l', name: 'Brass Diya (Large)', price: 700 }),
-    );
+    const cartText = screen.getByTestId('cart-items').textContent ?? '';
+    expect(cartText).toContain('"id":"prod-1::v-l"');
+    expect(cartText).toContain('"name":"Brass Diya (Large)"');
+    expect(cartText).toContain('"price":700');
   });
 });

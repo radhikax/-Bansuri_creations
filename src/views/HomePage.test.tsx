@@ -1,17 +1,28 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HomePage } from './HomePage';
+import { CartProvider, useCart } from '../components/cart/CartProvider';
 import { makeProduct } from '../test/fixtures';
+import type { Product } from '../types';
 
 const categories = [
   { title: 'Diwali Decor', description: 'Lights', image: 'a.jpg', icon: '🪔', slug: 'diwali-decor' },
   { title: 'Kanha Dresses', description: 'Outfits', image: 'b.jpg', icon: '👗', slug: 'kanha-dresses' },
 ];
 
-function renderHome(products = [makeProduct()], onAddToCart = vi.fn()) {
-  render(<HomePage products={products} categories={categories} onAddToCart={onAddToCart} />);
-  return { onAddToCart };
+function CartProbe() {
+  const { items } = useCart();
+  return <div data-testid="cart-items">{JSON.stringify(items)}</div>;
+}
+
+function renderHome(products: Product[] = [makeProduct()]) {
+  render(
+    <CartProvider>
+      <HomePage products={products} categories={categories} />
+      <CartProbe />
+    </CartProvider>,
+  );
 }
 
 describe('HomePage', () => {
@@ -39,8 +50,8 @@ describe('HomePage', () => {
 
   it('forwards add-to-cart from a product card', async () => {
     const user = userEvent.setup();
-    const { onAddToCart } = renderHome();
+    renderHome();
     await user.click(screen.getByRole('button', { name: /add to cart/i }));
-    expect(onAddToCart).toHaveBeenCalledWith(expect.objectContaining({ id: 'prod-1' }));
+    expect(screen.getByTestId('cart-items')).toHaveTextContent('"id":"prod-1"');
   });
 });

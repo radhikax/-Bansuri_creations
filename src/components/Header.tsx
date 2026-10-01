@@ -1,21 +1,27 @@
+'use client';
+
 import { useState } from 'react';
 import { Menu, ShoppingCart } from 'lucide-react';
 import { motion } from 'motion/react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
-import Link from 'next/link';
 import logo from '../assets/933b21dd0e7f43328405b2f83783e6907d3d0236.png';
 import { CART_ICON_ATTR } from '../lib/flyToCart';
 import type { AdaptedCategory } from '../lib/adapters';
 
 interface HeaderProps {
-  cartItemsCount: number;
-  onCartClick: () => void;
+  cartItemsCount?: number;
+  onCartClick?: () => void;
   categories: AdaptedCategory[];
 }
 
-export function Header({ cartItemsCount, onCartClick, categories }: HeaderProps) {
+// cartItemsCount/onCartClick default to an inert, no-cart state: app/layout.tsx
+// (a server component) can't pass a client callback across the boundary, and
+// cart wiring (Task 6) lands separately via useCart()'s count/open.
+export function Header({ cartItemsCount = 0, onCartClick = () => {}, categories }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const navLinks = [
     { to: '/', label: 'Home' },
@@ -52,7 +58,7 @@ export function Header({ cartItemsCount, onCartClick, categories }: HeaderProps)
 
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3">
-              <img src={typeof logo === 'string' ? logo : logo.src} alt="Bansuri Creations" className="h-12 w-12 object-contain" />
+              <Image src={logo} alt="Bansuri Creations" className="h-12 w-12 object-contain" />
               <span className="text-xl">Bansuri Creations</span>
             </Link>
           </div>

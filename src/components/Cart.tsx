@@ -9,7 +9,6 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Product } from '../types';
-import { imageSrcSet, optimizedImageUrl } from '../lib/images';
 import type { ShippingSettings } from '../lib/api';
 import { calculateShipping } from '../lib/shipping';
 
@@ -151,8 +150,7 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem, s
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-4">
                     <img
-                      src={optimizedImageUrl(item.image, 160)}
-                      srcSet={imageSrcSet(item.image, 160)}
+                      src={item.image}
                       loading="lazy"
                       alt={item.name}
                       className="w-24 h-24 object-cover rounded"

@@ -34,6 +34,22 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
+// jsdom's Request constructor requires an absolute URL, unlike a real browser
+// (which resolves a relative input against the page's own origin per the
+// Fetch spec). browserApi (src/lib/api/client.ts) relies on exactly that
+// same-origin resolution for its empty baseUrl, so patch it here for tests.
+const OriginalRequest = window.Request;
+class PatchedRequest extends OriginalRequest {
+  constructor(input: ConstructorParameters<typeof Request>[0], init?: RequestInit) {
+    const resolvedInput =
+      typeof input === 'string' && !/^[a-z]+:\/\//i.test(input)
+        ? new URL(input, window.location.href).toString()
+        : input;
+    super(resolvedInput, init);
+  }
+}
+vi.stubGlobal('Request', PatchedRequest);
+
 // jsdom has no Web Animations API (used by flyToCart).
 if (!window.HTMLElement.prototype.animate) {
   window.HTMLElement.prototype.animate = (() => ({

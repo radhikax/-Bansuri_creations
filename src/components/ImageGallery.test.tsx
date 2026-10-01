@@ -33,12 +33,13 @@ describe('ImageGallery', () => {
     expect(screen.getByAltText('Diya')).toBeInTheDocument();
   });
 
-  it('requests 1200px for the main image and 200px lazy thumbnails', () => {
+  it('gives the main image priority and the gallery sizes hint, and thumbnails the 96px hint', () => {
     const images = ['https://images.unsplash.com/photo-a', 'https://images.unsplash.com/photo-b'];
     render(<ImageGallery images={images} alt="Diya" />);
-    expect(screen.getByRole('img', { name: 'Diya' }).getAttribute('src')).toContain('w=1200');
+    const main = screen.getByRole('img', { name: 'Diya' });
+    expect(main).toHaveAttribute('sizes', '(min-width:768px) 50vw, 100vw');
     const thumb = screen.getByRole('img', { name: 'Diya thumbnail 2' });
-    expect(thumb.getAttribute('src')).toContain('w=200');
-    expect(thumb).toHaveAttribute('loading', 'lazy');
+    expect(thumb.getAttribute('src')).toBe(images[1]);
+    expect(thumb).toHaveAttribute('sizes', '96px');
   });
 });

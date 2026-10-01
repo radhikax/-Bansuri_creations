@@ -1,22 +1,26 @@
+'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { AnimatePresence, motion } from 'motion/react';
 import { ShoppingCart, Heart, Check } from 'lucide-react';
 import { Card, CardContent, CardFooter } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { ShimmerImage } from './ShimmerImage';
 import { Product } from '../types';
 import { flyToCart } from '../lib/flyToCart';
 import { useVariantSelection } from '../lib/useVariantSelection';
-import { imageSrcSet, optimizedImageUrl } from '../lib/images';
+import { useCart } from './cart/CartProvider';
+
+const CARD_IMAGE_SIZES = '(min-width:1024px) 25vw, (min-width:768px) 50vw, 100vw';
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (product: Product) => void;
 }
 
-export function ProductCard({ product, onAddToCart }: ProductCardProps) {
+export function ProductCard({ product }: ProductCardProps) {
+  const { add } = useCart();
   const {
     variants,
     hasMultipleVariants,
@@ -41,9 +45,9 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
 
   const handleAddToCart = () => {
     if (addButtonRef.current) {
-      flyToCart(addButtonRef.current, optimizedImageUrl(product.image, 160));
+      flyToCart(addButtonRef.current, product.image);
     }
-    onAddToCart(buildCartItem());
+    add(buildCartItem());
 
     setJustAdded(true);
     if (resetTimer.current) clearTimeout(resetTimer.current);
@@ -53,12 +57,12 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   return (
     <Card className="overflow-hidden group h-full flex flex-colhover:scale-[1.03] hover:shadow-[0_8px_24px_var(--tw-shadow-color)] hover:shadow-maroon-900/12 transition-[transform,box-shadow] duration-200 ease-out motion-reduce:hover:scale-100 motion-reduce:transition-shadow">
       <Link href={`/product/${product.slug}`} className="relative h-64 shrink-0 overflow-hidden block">
-        <ShimmerImage
-          src={optimizedImageUrl(product.image, 600)}
-          srcSet={imageSrcSet(product.image, 600)}
-          loading="lazy"
+        <Image
+          src={product.image}
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-[1.08] transition-transform duration-500 ease-out motion-reduce:group-hover:scale-100"
+          fill
+          sizes={CARD_IMAGE_SIZES}
+          className="object-cover group-hover:scale-[1.08] transition-transform duration-500 ease-out motion-reduce:group-hover:scale-100"
         />
         {showDiscount && (
           <Badge className="absolute top-3 left-3 bg-maroon-200 text-maroon-900 border-none">

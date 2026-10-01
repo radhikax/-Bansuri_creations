@@ -1,5 +1,6 @@
 import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react';
 import { Separator } from './ui/separator';
+import Image from 'next/image';
 import Link from 'next/link';
 import logo from '../assets/933b21dd0e7f43328405b2f83783e6907d3d0236.png';
 import type { AdaptedCategory } from '../lib/adapters';
@@ -12,7 +13,7 @@ export function Footer({ categories }: { categories: AdaptedCategory[] }) {
           {/* About */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <img src={typeof logo === 'string' ? logo : logo.src} alt="Bansuri Creations" className="h-10 w-10 object-contain" />
+              <Image src={logo} alt="Bansuri Creations" className="h-10 w-10 object-contain" />
               <h3 className="font-semibold">Bansuri Creations</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
@@ -78,7 +79,7 @@ export function Footer({ categories }: { categories: AdaptedCategory[] }) {
         </div>
 
         <Separator className="my-8" />
-        
+
         <div className="text-center text-sm text-muted-foreground">
           <p>© 2026 Bansuri Creations. All rights reserved. Handmade with ❤️ in India.</p>
         </div>

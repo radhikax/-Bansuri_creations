@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
+'use client';
+
 import { motion } from 'motion/react';
 import { ProductCard } from '../components/ProductCard';
 import { Reveal } from '../components/Reveal';
@@ -11,41 +11,24 @@ function staggerDelay(index: number) {
 }
 
 interface CategoryPageProps {
+  category: AdaptedCategory;
   products: Product[];
-  categories: AdaptedCategory[];
-  onAddToCart: (product: Product) => void;
 }
 
-export function CategoryPage({ products, categories, onAddToCart }: CategoryPageProps) {
-  const { category: categorySlug } = useParams<{ category: string }>();
-  const matchedCategory = categories.find((c) => c.slug === categorySlug);
-
-  if (!matchedCategory) {
-    return (
-      <div className="container mx-auto px-4 py-24 text-center">
-        <p className="text-lg mb-4">Category not found</p>
-        <Link href="/" className="text-primary hover:underline">
-          Back to shopping
-        </Link>
-      </div>
-    );
-  }
-
-  const filteredProducts = products.filter((p) => p.categorySlug === matchedCategory.slug);
-
+export function CategoryPage({ category, products }: CategoryPageProps) {
   return (
     <div className="min-h-screen py-16">
       <div className="container mx-auto px-4">
         <Reveal>
-          <h1 className="text-4xl md:text-5xl mb-4">{matchedCategory.title}</h1>
+          <h1 className="text-4xl md:text-5xl mb-4">{category.title}</h1>
           <p className="text-muted-foreground mb-12">
-            Browse our collection of {matchedCategory.title.toLowerCase()}
+            Browse our collection of {category.title.toLowerCase()}
           </p>
         </Reveal>
 
-        {filteredProducts.length > 0 ? (
+        {products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredProducts.map((product, index) => (
+            {products.map((product, index) => (
               <motion.div
                 key={product.id}
                 className="h-full"
@@ -53,10 +36,7 @@ export function CategoryPage({ products, categories, onAddToCart }: CategoryPage
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.35, delay: staggerDelay(index), ease: 'easeOut' }}
               >
-                <ProductCard
-                  product={product}
-                  onAddToCart={onAddToCart}
-                />
+                <ProductCard product={product} />
               </motion.div>
             ))}
           </div>

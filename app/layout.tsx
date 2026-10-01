@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Inter } from 'next/font/google';
 import '../src/styles/index.css';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { Toaster } from '@/components/ui/sonner';
+import { getCategories } from '@/lib/catalogue';
 
 const heading = Cormorant_Garamond({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-heading' });
 const body = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-body' });
@@ -11,10 +15,21 @@ export const metadata: Metadata = {
   description: 'Handmade traditional decor, wedding packing and personalised gifts.',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// The nav's categories are fetched here on every request — see app/page.tsx
+// for why this route tree stays dynamic instead of ISR.
+export const dynamic = 'force-dynamic';
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const categories = await getCategories();
+
   return (
     <html lang="en" className={`${heading.variable} ${body.variable}`}>
-      <body>{children}</body>
+      <body>
+        <Header categories={categories} />
+        {children}
+        <Footer categories={categories} />
+        <Toaster />
+      </body>
     </html>
   );
 }

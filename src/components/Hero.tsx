@@ -1,15 +1,14 @@
+import Image from 'next/image';
 import { Button } from './ui/button';
 import { Reveal } from './Reveal';
+
+const HERO_IMAGE_URL =
+  'https://images.unsplash.com/photo-1759397576098-c1f33b34088f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmZXN0aXZhbCUyMGRlY29yYXRpb25zJTIwY29sb3JmdWx8ZW58MXx8fHwxNzY4MDIxODQ4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
 
 export function Hero() {
   return (
     <section className="relative w-full h-[500px] md:h-[600px] overflow-hidden">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1759397576098-c1f33b34088f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmZXN0aXZhbCUyMGRlY29yYXRpb25zJTIwY29sb3JmdWx8ZW58MXx8fHwxNzY4MDIxODQ4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral')`
-        }}
-      />
+      <Image src={HERO_IMAGE_URL} alt="" fill priority sizes="100vw" className="object-cover" />
       <div className="absolute inset-0 bg-maroon-900/55" />
 
       <div className="relative container mx-auto px-4 h-full flex items-center">

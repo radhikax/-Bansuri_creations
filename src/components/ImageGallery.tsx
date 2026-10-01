@@ -1,7 +1,8 @@
+'use client';
+
 import { useRef, useState, type MouseEvent } from 'react';
+import Image from 'next/image';
 import { AnimatePresence, motion, useMotionValue, useSpring } from 'motion/react';
-import { ShimmerImage } from './ShimmerImage';
-import { imageSrcSet, optimizedImageUrl } from '../lib/images';
 
 interface ImageGalleryProps {
   images: string[];
@@ -9,6 +10,8 @@ interface ImageGalleryProps {
 }
 
 const ZOOM_SCALE = 1.8;
+const MAIN_IMAGE_SIZES = '(min-width:768px) 50vw, 100vw';
+const THUMBNAIL_SIZES = '96px';
 
 export function ImageGallery({ images, alt }: ImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -44,13 +47,9 @@ export function ImageGallery({ images, alt }: ImageGalleryProps) {
         onMouseLeave={handleMouseLeave}
         onMouseMove={handleMouseMove}
       >
-        <div className="shimmer absolute inset-0" aria-hidden="true" />
         <AnimatePresence mode="wait">
-          <motion.img
+          <motion.div
             key={selectedIndex}
-            src={optimizedImageUrl(images[selectedIndex], 1200)}
-            srcSet={imageSrcSet(images[selectedIndex], 1200)}
-            alt={alt}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, scale: isHovering ? ZOOM_SCALE : 1 }}
             exit={{ opacity: 0 }}
@@ -59,8 +58,17 @@ export function ImageGallery({ images, alt }: ImageGalleryProps) {
               scale: { duration: 0.3, ease: 'easeOut' },
             }}
             style={{ x: springX, y: springY }}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+            className="absolute inset-0"
+          >
+            <Image
+              src={images[selectedIndex]}
+              alt={alt}
+              fill
+              priority
+              sizes={MAIN_IMAGE_SIZES}
+              className="object-cover"
+            />
+          </motion.div>
         </AnimatePresence>
       </div>
 
@@ -71,21 +79,19 @@ export function ImageGallery({ images, alt }: ImageGalleryProps) {
               key={img}
               type="button"
               onClick={() => setSelectedIndex(index)}
-              className={`w-16 h-16 rounded-md overflow-hidden border-2 transition-all duration-200 ease-out ${
+              className={`relative w-16 h-16 rounded-md overflow-hidden border-2 transition-all duration-200 ease-out ${
                 index === selectedIndex
                   ? 'border-primary scale-105'
                   : 'border-border opacity-70 hover:opacity-100'
               }`}
             >
-              <span className="relative block w-full h-full">
-                <ShimmerImage
-                  src={optimizedImageUrl(img, 200)}
-                  srcSet={imageSrcSet(img, 200)}
-                  loading="lazy"
-                  alt={`${alt} thumbnail ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </span>
+              <Image
+                src={img}
+                alt={`${alt} thumbnail ${index + 1}`}
+                fill
+                sizes={THUMBNAIL_SIZES}
+                className="object-cover"
+              />
             </button>
           ))}
         </div>

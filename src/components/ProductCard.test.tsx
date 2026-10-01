@@ -1,13 +1,23 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ProductCard } from './ProductCard';
+import { CartProvider, useCart } from './cart/CartProvider';
 import { makeProduct, sizeVariants } from '../test/fixtures';
 import type { Product } from '../types';
 
-function renderCard(product: Product, onAddToCart = vi.fn()) {
-  render(<ProductCard product={product} onAddToCart={onAddToCart} />);
-  return { onAddToCart };
+function CartProbe() {
+  const { items } = useCart();
+  return <div data-testid="cart-items">{JSON.stringify(items)}</div>;
+}
+
+function renderCard(product: Product) {
+  render(
+    <CartProvider>
+      <ProductCard product={product} />
+      <CartProbe />
+    </CartProvider>,
+  );
 }
 
 describe('ProductCard', () => {
@@ -40,11 +50,9 @@ describe('ProductCard', () => {
 
   it('adds the product to the cart and briefly confirms', async () => {
     const user = userEvent.setup();
-    const product = makeProduct();
-    const { onAddToCart } = renderCard(product);
+    renderCard(makeProduct());
     await user.click(screen.getByRole('button', { name: /add to cart/i }));
-    expect(onAddToCart).toHaveBeenCalledTimes(1);
-    expect(onAddToCart).toHaveBeenCalledWith(product);
+    expect(screen.getByTestId('cart-items')).toHaveTextContent('"id":"prod-1"');
     expect(await screen.findByText('Added!')).toBeInTheDocument();
   });
 
@@ -72,20 +80,20 @@ describe('ProductCard', () => {
 
     it('adds a variant-specific item to the cart', async () => {
       const user = userEvent.setup();
-      const { onAddToCart } = renderCard(makeProduct({ variants: sizeVariants }));
+      renderCard(makeProduct({ variants: sizeVariants }));
       await user.click(screen.getByRole('button', { name: 'Large' }));
       await user.click(screen.getByRole('button', { name: /add to cart/i }));
-      expect(onAddToCart).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'prod-1::v-l', name: 'Brass Diya (Large)', price: 700 }),
-      );
+      const cartText = screen.getByTestId('cart-items').textContent ?? '';
+      expect(cartText).toContain('"id":"prod-1::v-l"');
+      expect(cartText).toContain('"name":"Brass Diya (Large)"');
+      expect(cartText).toContain('"price":700');
     });
   });
 
-  it('requests a 600px Unsplash image with a 2x candidate, lazily', () => {
+  it('renders the image with the card sizes hint', () => {
     renderCard(makeProduct({ image: 'https://images.unsplash.com/photo-card' }));
     const img = screen.getByRole('img', { name: 'Brass Diya' });
-    expect(img.getAttribute('src')).toContain('w=600');
-    expect(img.getAttribute('srcset')).toContain('w=1200');
-    expect(img).toHaveAttribute('loading', 'lazy');
+    expect(img.getAttribute('src')).toBe('https://images.unsplash.com/photo-card');
+    expect(img).toHaveAttribute('sizes', '(min-width:1024px) 25vw, (min-width:768px) 50vw, 100vw');
   });
 });
