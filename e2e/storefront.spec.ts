@@ -73,14 +73,21 @@ test('a category card shows only that category, and Back returns home', async ({
   await expect(page.locator(`a[href="/category/${category.slug}"]`).first()).toBeVisible();
 });
 
-test('an unknown category shows "Category not found"', async ({ page }) => {
-  await page.goto('/category/does-not-exist');
-  await expect(page.getByText('Category not found')).toBeVisible();
+test('an unknown category shows the not-found page with a real 404', async ({ page }) => {
+  const response = await page.goto('/category/does-not-exist');
+  expect(response?.status()).toBe(404);
+  await expect(page.getByRole('heading', { name: "We couldn't find that page" })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Back to shopping' })).toBeVisible();
 });
 
-test('the storefront shows an error, not a blank page, when the API is down', async ({ page }) => {
+// Pages are now rendered on the server, so a browser-side API outage can no
+// longer blank the catalogue; the only browser-side call left is the product
+// page's live-stock refresh. Cutting it must leave the page fully usable.
+// (A server-side API failure renders app/(shop)/error.tsx — covered by its unit test.)
+test('the storefront stays usable, not blank, when the browser cannot reach the API', async ({ page, request }) => {
+  const products = (await (await request.get(`${API_ORIGIN}/api/products`)).json()) as ApiProduct[];
   await page.route('**/api/**', (route) => route.abort());
-  await page.goto('/');
-  await expect(page.getByText("Couldn't load products or categories. Please try again.")).toBeVisible();
+  await page.goto(`/product/${products[0].slug}`);
+  await expect(page.getByRole('heading', { level: 1, name: products[0].name })).toBeVisible();
+  await expect(page.getByRole('button', { name: /add to cart/i }).first()).toBeEnabled();
 });

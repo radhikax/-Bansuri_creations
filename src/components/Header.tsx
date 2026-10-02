@@ -33,7 +33,7 @@ export function Header({ categories }: HeaderProps) {
             {/* Phone menu */}
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
+                <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -61,7 +61,7 @@ export function Header({ categories }: HeaderProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-6">
             {navLinks.map((link) => (
               <Link key={link.to} href={link.to} className="text-sm hover:text-primary transition-colors">
                 {link.label}

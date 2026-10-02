@@ -35,21 +35,35 @@ async function expectHeadingStillOnScreen(page: Page, name: string) {
   expect(box!.height).toBeGreaterThan(0);
 }
 
-function parseRgba(color: string): { r: number; g: number; b: number; a: number } {
-  const match = color.match(/rgba?\(([^)]+)\)/);
-  if (!match) throw new Error(`Not an rgb()/rgba() colour: ${color}`);
-  const [r, g, b, a = 1] = match[1].split(',').map((part) => parseFloat(part.trim()));
-  return { r, g, b, a };
+/**
+ * Chromium reports Tailwind v4 colours in the space they were authored in:
+ * rgb()/rgba() for some, oklab()/oklch() for colour-mixed ones like
+ * bg-(--beige-50)/45. Return the alpha and whether the colour is light
+ * (not a black scrim) for either form.
+ */
+function parseColour(color: string): { a: number; light: boolean } {
+  const rgb = color.match(/^rgba?\(([^)]+)\)$/);
+  if (rgb) {
+    const [r, g, b, a = 1] = rgb[1].split(/[,\s/]+/).filter(Boolean).map(parseFloat);
+    return { a, light: (r + g + b) / 3 > 128 };
+  }
+  const ok = color.match(/^okl(?:ab|ch)\(\s*([\d.]+)%?[^/)]*(?:\/\s*([\d.]+)(%?))?\)$/);
+  if (ok) {
+    const lightness = parseFloat(ok[1]) > 1 ? parseFloat(ok[1]) / 100 : parseFloat(ok[1]);
+    const a = ok[2] === undefined ? 1 : ok[3] === '%' ? parseFloat(ok[2]) / 100 : parseFloat(ok[2]);
+    return { a, light: lightness > 0.5 };
+  }
+  throw new Error(`Unrecognised colour format: ${color}`);
 }
 
 /** Exactly one overlay open, and it's the beige veil (bg-(--beige-50)/45), not an opaque black scrim. */
 async function expectSingleTranslucentOverlay(overlays: Locator) {
   await expect(overlays).toHaveCount(1);
   const color = await overlays.first().evaluate((el) => getComputedStyle(el).backgroundColor);
-  const { r, g, b, a } = parseRgba(color);
+  const { a, light } = parseColour(color);
   expect(a).toBeLessThan(0.6);
   expect(a).toBeCloseTo(0.45, 1);
-  expect(`rgb(${r}, ${g}, ${b})`).not.toBe('rgb(0, 0, 0)');
+  expect(light).toBe(true);
 }
 
 for (const viewport of VIEWPORTS) {

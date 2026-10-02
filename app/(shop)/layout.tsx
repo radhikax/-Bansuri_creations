@@ -13,9 +13,11 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
 
   return (
     <CartProvider>
-      <Header categories={categories} />
-      {children}
-      <Footer categories={categories} />
+      <div className="min-h-screen flex flex-col">
+        <Header categories={categories} />
+        <main className="flex-1">{children}</main>
+        <Footer categories={categories} />
+      </div>
       <Cart />
     </CartProvider>
   );

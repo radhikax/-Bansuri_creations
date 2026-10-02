@@ -36,7 +36,9 @@ test('a product page renders the name, price and Product JSON-LD without JavaScr
   const products = await getProducts(request);
   const product = products[0];
 
-  const body = await (await request.get(`/product/${product.slug}`)).text();
+  // React separates adjacent text nodes in server HTML with <!-- --> markers
+  // (e.g. "₹<!-- -->1299"); crawlers read the text as one string, so drop them.
+  const body = (await (await request.get(`/product/${product.slug}`)).text()).replaceAll('<!-- -->', '');
   expect(body).toContain(product.name);
   expect(body).toContain(`₹${priceOf(product)}`);
   expect(body).toContain('<script type="application/ld+json">');
