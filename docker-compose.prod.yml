@@ -1,0 +1,59 @@
+# Production stack. Configuration comes from ${ENV_FILE:-.env.production}
+# (copy .env.production.example). Images default to GHCR; `--build` builds locally.
+name: bansuri
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    env_file: ${ENV_FILE:-.env.production}
+    volumes:
+      - pgdata-prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    image: ${API_IMAGE:-ghcr.io/radhikax/bansuri-api:latest}
+    build: ./server
+    env_file: ${ENV_FILE:-.env.production}
+    command: ["./node_modules/.bin/prisma", "migrate", "deploy"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: ${API_IMAGE:-ghcr.io/radhikax/bansuri-api:latest}
+    build: ./server
+    env_file: ${ENV_FILE:-.env.production}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/radhikax/bansuri-web:latest}
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:8080}
+        API_INTERNAL_URL: http://api:4000
+    env_file: ${ENV_FILE:-.env.production}
+    environment:
+      API_INTERNAL_URL: http://api:4000
+      # The shared env file sets PORT=4000 for the API; environment wins over
+      # env_file, so pin the web server to its own port and interface here.
+      PORT: "8080"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata-prod:

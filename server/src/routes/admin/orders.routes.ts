@@ -7,7 +7,7 @@ import { asyncHandler } from '../../middleware/asyncHandler';
 export const adminOrdersRouter = Router();
 adminOrdersRouter.use(requireAdminAuth);
 
-const orderStatusValues = ['PENDING', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const;
+type OrderStatus = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
 
 // PENDING and PAID are machine-owned: checkout creates PENDING, and the Razorpay
 // webhook is the sole authority that may transition an order to PAID.
@@ -20,14 +20,14 @@ const restockableStatuses: readonly string[] = ['PAID', 'PROCESSING', 'SHIPPED',
 adminOrdersRouter.get('/', asyncHandler(async (req, res) => {
   const status = typeof req.query.status === 'string' ? req.query.status : undefined;
   const orders = await prisma.order.findMany({
-    where: status ? { status: status as (typeof orderStatusValues)[number] } : undefined,
+    where: status ? { status: status as OrderStatus } : undefined,
     include: { items: true },
     orderBy: { createdAt: 'desc' },
   });
   res.json(orders);
 }));
 
-const statusUpdateSchema = z.object({ status: z.enum(adminSettableStatusValues) });
+export const statusUpdateSchema = z.object({ status: z.enum(adminSettableStatusValues) });
 
 adminOrdersRouter.put('/:id/status', asyncHandler(async (req, res) => {
   const parsed = statusUpdateSchema.safeParse(req.body);

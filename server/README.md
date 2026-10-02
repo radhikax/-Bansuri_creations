@@ -20,6 +20,9 @@ guest checkout orders, Razorpay payments, and an admin panel backend.
 database (via `.env.test`). Tests reset relevant tables in `beforeEach`
 blocks, so they can be run repeatedly without manual cleanup.
 
+Browser smoke tests live at the repo root (`npm run e2e`) and use their own
+`ecommerce_e2e` database; see the root README for the one-time setup.
+
 ## Deployment (free-tier target)
 
 1. Create a Postgres database on Neon or Supabase (free tier) for production.
@@ -28,41 +31,50 @@ blocks, so they can be run repeatedly without manual cleanup.
    - Start command: `npm start`
    - Environment variables: same keys as `.env.example`, with real production
      values (`DATABASE_URL` from Neon/Supabase, live Razorpay keys, Resend key,
-     `FRONTEND_ORIGIN` set to the deployed frontend's URL, `NODE_ENV=production`).
-3. Run `npx prisma migrate deploy` against the production `DATABASE_URL` once
+     `NODE_ENV=production`). `FRONTEND_ORIGIN` is only needed if the frontend
+     calls the API cross-origin via `VITE_API_BASE_URL`; the default
+     same-origin setup below doesn't need it.
+3. Serve the frontend and the API from **one origin**: configure the frontend
+   host to forward `/api/*` to this API, so the admin session cookie stays
+   first-party. Examples (replace `<api-host>`); the SPA fallback must come
+   after the `/api` rule so client routes like `/admin`, `/admin/login` and
+   `/category/<slug>` don't 404 on a direct load or reload:
+   - Vercel `vercel.json`:
+     `{ "rewrites": [ { "source": "/api/:path*", "destination": "https://<api-host>/api/:path*" }, { "source": "/(.*)", "destination": "/index.html" } ] }`
+   - Netlify `_redirects` (order matters, `/api` first):
+     ```
+     /api/*  https://<api-host>/api/:splat  200
+     /*      /index.html                    200
+     ```
+   Leave `VITE_API_BASE_URL` unset in the frontend build.
+4. Run `npx prisma migrate deploy` against the production `DATABASE_URL` once
    (via the platform's shell/console, or a one-off deploy hook) before first use.
-4. Run `npm run prisma:seed` once against production to load initial products
-   and create the real admin user — then change the seeded admin password
-   via a direct login + a future admin "change password" flow, or by
-   re-seeding with different `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`.
-5. In the Razorpay dashboard, configure the webhook URL to
+5. Run `npm run prisma:seed` once against production to load initial products
+   and create the real admin user — then immediately log in to `/admin` and
+   change the password under Settings → Account. Alternatively, set
+   `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` before running the first
+   production seed. `seed.ts` upserts the admin with `update: {}`, so
+   re-seeding never changes an existing admin's password — re-seeding with a
+   new email creates a second admin and leaves `admin@example.com` /
+   `changeme123` live in production.
+6. In the Razorpay dashboard, configure the webhook URL to
    `https://<your-deployed-api>/api/orders/razorpay-webhook` and set the
    webhook secret to match `RAZORPAY_WEBHOOK_SECRET`.
-6. Schedule `node dist/jobs/cancelAbandonedOrders.js` to run hourly using
+7. Schedule `node dist/jobs/cancelAbandonedOrders.js` to run hourly using
    the hosting platform's cron/scheduled-job feature (Render Cron Jobs or
    Railway Cron), pointed at the production environment variables.
 
-## Known limitations for cross-origin frontend deployment
+## Why the frontend proxies `/api` instead of calling the API cross-origin
 
-If the admin frontend ends up deployed on a different origin from this API
-(the topology this deployment section sets up via `FRONTEND_ORIGIN` +
-CORS `credentials: true`), two things need to be resolved before the admin
-panel will actually work, before wiring up that frontend:
+The `admin_session` cookie is `SameSite=Lax`. Browsers don't attach `Lax`
+cookies to cross-site `fetch` requests, so an admin frontend on a different
+site than the API would log in successfully and then get 401 on every admin
+request. Switching to `SameSite=None; Secure` would only work until the cookie
+is blocked as a third-party cookie (Safari already blocks these; Chrome is
+phasing them out). Serving `/api` from the frontend's own origin (the Vite
+proxy in dev, a host rewrite in production — see Deployment) keeps the cookie
+first-party everywhere.
 
-- The `admin_session` cookie is currently set with `sameSite: 'lax'`
-  (`src/routes/admin/auth.routes.ts`). Browsers do not attach `Lax` cookies
-  to cross-origin `fetch`/XHR requests, only to top-level navigations — so
-  a cross-origin admin frontend calling this API with
-  `credentials: 'include'` will get a correct login response but no cookie
-  on subsequent requests, and every admin route will 401. This needs
-  `sameSite: 'none'` + `secure: true` (or a same-origin/proxied topology)
-  once the real deployment shape is decided.
-- Express 4 (used here) does not forward a rejected promise from an `async`
-  route handler to error-handling middleware. Most routes have no
-  try/catch, so an unexpected failure (a Prisma error, a Razorpay/Resend
-  outage) can hang the request or crash the process instead of returning a
-  clean 500. The Razorpay webhook handler was hardened against this; the
-  rest of the routes were not.
-
-Neither is a regression from anything already built — both are open
-follow-ups for whoever picks up the frontend-integration plan.
+Unhandled errors from async route handlers are forwarded to the terminal error
+handler by `asyncHandler` (and the Razorpay webhook has its own handling), so
+they return a clean 500 instead of hanging the request.

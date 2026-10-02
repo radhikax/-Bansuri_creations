@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { resolveUnitPrice, validateStock, computeOrderTotals, OrderValidationError } from '../../src/services/pricing';
 
 const variants = [
-  { id: 'v1', price: null, stock: 5, product: { basePrice: 500 } },
-  { id: 'v2', price: 800, stock: 2, product: { basePrice: 500 } },
+  { id: 'v1', price: null, stock: 5, product: { basePrice: 500, isActive: true } },
+  { id: 'v2', price: 800, stock: 2, product: { basePrice: 500, isActive: true } },
+  { id: 'v3', price: 300, stock: 10, product: { basePrice: 300, isActive: false } },
 ];
 
 describe('resolveUnitPrice', () => {
@@ -27,6 +28,20 @@ describe('validateStock', () => {
 
   it('throws OrderValidationError for an unknown variant', () => {
     expect(() => validateStock([{ variantId: 'missing', quantity: 1 }], variants)).toThrow(OrderValidationError);
+  });
+
+  it('throws OrderValidationError for a variant on an inactive product', () => {
+    expect(() => validateStock([{ variantId: 'v3', quantity: 1 }], variants)).toThrow(OrderValidationError);
+  });
+
+  it('sums quantity for the same variant repeated across lines', () => {
+    // v2 has stock 2: two lines of 1 each fit individually but not combined.
+    expect(() =>
+      validateStock([{ variantId: 'v2', quantity: 1 }, { variantId: 'v2', quantity: 1 }], variants),
+    ).not.toThrow();
+    expect(() =>
+      validateStock([{ variantId: 'v2', quantity: 1 }, { variantId: 'v2', quantity: 2 }], variants),
+    ).toThrow(OrderValidationError);
   });
 });
 

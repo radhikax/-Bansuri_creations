@@ -1,10 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
+import { buildOpenApiDocument } from './openapi/registry';
 import { handleRazorpayWebhook } from './routes/webhook.routes';
 import { categoriesRouter } from './routes/categories.routes';
 import { productsRouter } from './routes/products.routes';
 import { ordersRouter } from './routes/orders.routes';
+import { settingsRouter } from './routes/settings.routes';
 import { adminAuthRouter } from './routes/admin/auth.routes';
 import { adminProductsRouter } from './routes/admin/products.routes';
 import { adminCategoriesRouter } from './routes/admin/categories.routes';
@@ -24,9 +27,18 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+const openApiDocument = buildOpenApiDocument();
+app.get('/api/openapi.json', (_req, res) => {
+  res.json(openApiDocument);
+});
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
+}
+
 app.use('/api/categories', categoriesRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
+app.use('/api/settings', settingsRouter);
 app.use('/api/admin', adminAuthRouter);
 app.use('/api/admin/products', adminProductsRouter);
 app.use('/api/admin/categories', adminCategoriesRouter);
