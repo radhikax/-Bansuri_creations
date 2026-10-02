@@ -44,6 +44,10 @@ services:
     env_file: ${ENV_FILE:-.env.production}
     environment:
       API_INTERNAL_URL: http://api:4000
+      # The shared env file sets PORT=4000 for the API; environment wins over
+      # env_file, so pin the web server to its own port and interface here.
+      PORT: "8080"
+      HOSTNAME: 0.0.0.0
     ports:
       - "8080:8080"
     depends_on:

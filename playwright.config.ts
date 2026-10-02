@@ -29,7 +29,10 @@ export default defineConfig({
       // and wouldn't have the secret the /internal/revalidate route checks, so
       // the admin API's fire-and-forget revalidate calls would 401 silently.
       command: 'npm run build && npm run start',
-      url: 'http://localhost:5173',
+      // Readiness probe on a page that never touches the API: Playwright starts
+      // the web servers before globalSetup migrates and seeds the e2e database,
+      // so '/' would answer 500 until then and the wait would time out.
+      url: 'http://localhost:5173/robots.txt',
       reuseExistingServer: false,
       env: { API_INTERNAL_URL: 'http://localhost:4000', REVALIDATE_SECRET: 'e2e-revalidate-secret' },
       timeout: 240_000,
