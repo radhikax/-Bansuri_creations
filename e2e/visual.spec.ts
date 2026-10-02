@@ -13,6 +13,17 @@ const VIEWPORTS = [
 
 async function expectNoHorizontalOverflow(page: Page) {
   const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+  // On failure, name the elements that stick out past the right edge so the
+  // CI log says what to fix instead of just "false".
+  const offenders = fits
+    ? []
+    : await page.evaluate(() =>
+        Array.from(document.querySelectorAll('body *'))
+          .filter((el) => el.getBoundingClientRect().right > window.innerWidth + 1)
+          .slice(0, 8)
+          .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)} → ${Math.round(el.getBoundingClientRect().right)}px`),
+      );
+  expect(offenders, `wider than ${page.viewportSize()?.width}px`).toEqual([]);
   expect(fits).toBe(true);
 }
 

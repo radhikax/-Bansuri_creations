@@ -9,7 +9,7 @@ export function Footer({ categories }: { categories: AdaptedCategory[] }) {
   return (
     <footer className="bg-muted/50 mt-16">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* About */}
           <div>
             <div className="flex items-center gap-3 mb-4">
@@ -72,7 +72,7 @@ export function Footer({ categories }: { categories: AdaptedCategory[] }) {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 flex-shrink-0" />
-                <span>info@bansuricreations.com</span>
+                <span className="min-w-0 break-all">info@bansuricreations.com</span>
               </li>
             </ul>
           </div>
