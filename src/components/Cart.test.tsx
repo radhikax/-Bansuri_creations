@@ -33,6 +33,12 @@ function AutoOpen() {
   return null;
 }
 
+/** Exposes the live item count, the way Header's badge would, so tests can assert on it directly. */
+function CartCountProbe() {
+  const { count } = useCart();
+  return <div data-testid="cart-count">{count}</div>;
+}
+
 function renderCart(items: CartItem[] = [], { opened = true } = {}) {
   if (items.length > 0) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: 1, items }));
@@ -41,6 +47,7 @@ function renderCart(items: CartItem[] = [], { opened = true } = {}) {
     <CartProvider>
       {opened && <AutoOpen />}
       <Cart />
+      <CartCountProbe />
     </CartProvider>,
   );
 }
@@ -190,6 +197,9 @@ describe('Cart', () => {
 
       expect(screen.queryByRole('dialog', { name: 'Shipping' })).not.toBeInTheDocument();
       expect(await screen.findByRole('dialog', { name: /shopping cart/i })).toBeInTheDocument();
+      // Dismissing checkout (not paying) must not touch the cart.
+      expect(screen.getByText('Brass Diya')).toBeInTheDocument();
+      expect(screen.getByTestId('cart-count')).toHaveTextContent('2');
     });
 
     it('starts on the shipping step with Continue disabled until every field is filled', async () => {
@@ -237,6 +247,27 @@ describe('Cart', () => {
       expect(screen.queryByRole('heading', { name: 'Review' })).not.toBeInTheDocument();
       // Paying doesn't reopen the cart sheet — it was already closed by Proceed to Checkout.
       expect(screen.queryByRole('dialog', { name: /shopping cart/i })).not.toBeInTheDocument();
+    });
+
+    it('empties the cart — count and localStorage — and leaves both popups closed after a successful payment', async () => {
+      const user = userEvent.setup();
+      renderCart([diya]);
+      await openCheckout(user);
+      await fillShipping(user);
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      await screen.findByText('1 item in cart');
+      await user.click(screen.getByRole('button', { name: 'Review Order' }));
+      await screen.findByText(/Asha Rao, 12 MG Road, Pune/);
+
+      await user.click(screen.getByRole('button', { name: 'Pay ₹1050' }));
+
+      expect(alertSpy).toHaveBeenCalled();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.getByTestId('cart-count')).toHaveTextContent('0'));
+      await waitFor(() => {
+        const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY)!);
+        expect(stored.items).toEqual([]);
+      });
     });
 
     it('back navigation preserves the entered shipping details', async () => {

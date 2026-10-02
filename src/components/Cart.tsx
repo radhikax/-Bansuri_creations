@@ -13,7 +13,7 @@ import { useCart } from './cart/CartProvider';
 import { CheckoutDialog } from './CheckoutDialog';
 
 export function Cart() {
-  const { items, setQuantity, remove, isOpen, open, close } = useCart();
+  const { items, setQuantity, remove, clear, isOpen, open, close } = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [shippingSettings, setShippingSettings] = useState<ShippingSettings | null>(null);
   const fetchedShipping = useRef(false);
@@ -47,6 +47,13 @@ export function Cart() {
     open();
   };
 
+  // Payment succeeded: empty the saved cart (it's a one-shot demo, nothing to
+  // keep) and leave both popups closed — don't reopen the sheet here.
+  const handlePaid = () => {
+    setCheckoutOpen(false);
+    clear();
+  };
+
   return (
     <>
       <Sheet open={isOpen} onOpenChange={close}>
@@ -69,7 +76,7 @@ export function Cart() {
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-4">
                     <div className="relative w-24 h-24 shrink-0 overflow-hidden rounded">
-                      <Image src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
+                      <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" />
                     </div>
                     <div className="flex-1">
                       <h4 className="line-clamp-2 mb-1">{item.name}</h4>
@@ -150,7 +157,7 @@ export function Cart() {
         shippingLabel={shippingLabel}
         total={total}
         onBackToCart={handleBackToCart}
-        onPaid={() => setCheckoutOpen(false)}
+        onPaid={handlePaid}
       />
     </>
   );
