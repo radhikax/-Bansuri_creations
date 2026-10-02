@@ -3,6 +3,7 @@
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { isOptimizableImage } from '../lib/images';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './ui/sheet';
 import { Separator } from './ui/separator';
@@ -82,7 +83,7 @@ export function Cart() {
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-4">
                     <div className="relative w-24 h-24 shrink-0 overflow-hidden rounded">
-                      <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" />
+                      <Image src={item.image} unoptimized={!isOptimizableImage(item.image)} alt={item.name} fill sizes="96px" className="object-cover" />
                     </div>
                     <div className="flex-1">
                       <h4 className="line-clamp-2 mb-1">{item.name}</h4>

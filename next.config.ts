@@ -1,11 +1,14 @@
 import type { NextConfig } from 'next';
+import { OPTIMIZED_IMAGE_HOSTS } from './src/lib/images';
 
 const apiInternal = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
 
 const config: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
-  images: { remotePatterns: [{ protocol: 'https', hostname: 'images.unsplash.com' }] },
+  // Images from any other host render unoptimized (see src/lib/images.ts), so
+  // an admin-entered URL on a new host still displays.
+  images: { remotePatterns: OPTIMIZED_IMAGE_HOSTS.map((hostname) => ({ protocol: 'https' as const, hostname })) },
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${apiInternal}/api/:path*` }];
   },

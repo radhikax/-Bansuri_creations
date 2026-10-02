@@ -62,10 +62,27 @@ function cartReducer(state: CartItem[], action: Action): CartItem[] {
   }
 }
 
+const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+
+/**
+ * Checks every field the Cart and checkout read, not just the ids — a partial
+ * write or an edited/tampered entry would otherwise render a broken image
+ * and ₹NaN totals. Bad entries are dropped individually; good ones are kept.
+ */
 function isWellFormedItem(item: unknown): item is CartItem {
   if (!item || typeof item !== 'object') return false;
-  const { id, variantId, quantity } = item as { id?: unknown; variantId?: unknown; quantity?: unknown };
-  return typeof id === 'string' && typeof variantId === 'string' && typeof quantity === 'number';
+  const { id, variantId, name, image, price, quantity } = item as Record<string, unknown>;
+  return (
+    isNonEmptyString(id) &&
+    isNonEmptyString(variantId) &&
+    isNonEmptyString(name) &&
+    isNonEmptyString(image) &&
+    typeof price === 'number' &&
+    Number.isFinite(price) &&
+    price >= 0 &&
+    Number.isInteger(quantity) &&
+    (quantity as number) >= 1
+  );
 }
 
 /**

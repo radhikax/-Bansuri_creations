@@ -272,7 +272,7 @@ describe('revalidate triggers', () => {
 
       expect(res.status).toBe(200);
       expect(revalidateMock).toHaveBeenCalledTimes(1);
-      expect(revalidateMock).toHaveBeenCalledWith([`product:${variant.product.slug}`]);
+      expect(revalidateMock).toHaveBeenCalledWith(['product-list', `product:${variant.product.slug}`]);
 
       await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
       await prisma.order.delete({ where: { id: order.id } });

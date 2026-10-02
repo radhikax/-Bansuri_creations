@@ -2,6 +2,7 @@
 
 import { useRef, useState, type MouseEvent } from 'react';
 import Image from 'next/image';
+import { isOptimizableImage } from '../lib/images';
 import { AnimatePresence, motion, useMotionValue, useSpring } from 'motion/react';
 
 interface ImageGalleryProps {
@@ -62,6 +63,7 @@ export function ImageGallery({ images, alt }: ImageGalleryProps) {
           >
             <Image
               src={images[selectedIndex]}
+              unoptimized={!isOptimizableImage(images[selectedIndex])}
               alt={alt}
               fill
               priority
@@ -87,6 +89,7 @@ export function ImageGallery({ images, alt }: ImageGalleryProps) {
             >
               <Image
                 src={img}
+                unoptimized={!isOptimizableImage(img)}
                 alt={`${alt} thumbnail ${index + 1}`}
                 fill
                 sizes={THUMBNAIL_SIZES}

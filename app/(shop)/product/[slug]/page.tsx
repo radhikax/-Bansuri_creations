@@ -24,10 +24,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description,
     alternates: { canonical: absoluteUrl(`/product/${slug}`) },
     openGraph: { type: 'website', title: raw.name, description, images: [image] },
-    other: {
-      'product:price:amount': String(productPrice(raw)),
-      'product:price:currency': 'INR',
-    },
+    // The product:price:* Open Graph tags are rendered by the page below, not
+    // here: Metadata `other` emits <meta name=...>, but OG parsers (WhatsApp,
+    // Facebook) only read <meta property=...>.
   };
 }
 
@@ -40,6 +39,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   return (
     <>
+      {/* React hoists these into <head>; see generateMetadata for why they aren't metadata. */}
+      <meta property="product:price:amount" content={String(productPrice(found.raw))} />
+      <meta property="product:price:currency" content="INR" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }} />
       <ProductDetailPage product={found.product} />
     </>

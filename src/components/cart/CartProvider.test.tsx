@@ -73,6 +73,34 @@ describe('CartProvider', () => {
     expect(result.current.count).toBe(0);
   });
 
+  it('drops saved items that are missing fields or have an invalid price or quantity, keeping the valid ones', async () => {
+    const valid = { ...makeProduct(), quantity: 2, variantId: 'v-1' };
+    const { name: _name, ...missingName } = { ...makeProduct({ id: 'no-name' }), quantity: 1, variantId: 'v-2' };
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        v: 2,
+        items: [
+          valid,
+          { id: 'bare', variantId: 'v-3', quantity: 1 },
+          missingName,
+          { ...makeProduct({ id: 'no-image' }), image: '', quantity: 1, variantId: 'v-4' },
+          { ...makeProduct({ id: 'bad-price' }), price: 'free', quantity: 1, variantId: 'v-5' },
+          { ...makeProduct({ id: 'zero-qty' }), quantity: 0, variantId: 'v-6' },
+          { ...makeProduct({ id: 'neg-qty' }), quantity: -2, variantId: 'v-7' },
+          { ...makeProduct({ id: 'frac-qty' }), quantity: 1.5, variantId: 'v-8' },
+          null,
+        ],
+      }),
+    );
+
+    const { result } = renderHook(() => useCart(), { wrapper: CartProvider });
+
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(result.current.items[0]).toMatchObject({ id: valid.id, quantity: 2 });
+    expect(result.current.count).toBe(2);
+  });
+
   it('gives an empty cart when storage is missing', () => {
     const { result } = renderHook(() => useCart(), { wrapper: CartProvider });
     expect(result.current.items).toEqual([]);

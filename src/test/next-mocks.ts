@@ -10,6 +10,13 @@ vi.mock('next/navigation', () => ({
   notFound: vi.fn(() => { throw new Error('NEXT_NOT_FOUND'); }),
 }));
 vi.mock('next/image', () => ({
-  default: ({ src, alt, fill: _fill, priority: _priority, sizes, ...rest }: Record<string, unknown>) =>
-    React.createElement('img', { src: typeof src === 'string' ? src : '', alt, sizes, ...rest }),
+  // `unoptimized` surfaces as data-unoptimized so tests can assert which images skip the optimizer.
+  default: ({ src, alt, fill: _fill, priority: _priority, unoptimized, sizes, ...rest }: Record<string, unknown>) =>
+    React.createElement('img', {
+      src: typeof src === 'string' ? src : '',
+      alt,
+      sizes,
+      'data-unoptimized': unoptimized ? 'true' : undefined,
+      ...rest,
+    }),
 }));

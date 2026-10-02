@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [category, products] = await Promise.all([getCategoryBySlug(slug), getProducts()]);
+  const [category, products] = await Promise.all([getCategoryBySlug(slug), getProducts(slug)]);
   if (!category) notFound();
-  return <CategoryPage category={category} products={products.filter((p) => p.categorySlug === slug)} />;
+  return <CategoryPage category={category} products={products} />;
 }

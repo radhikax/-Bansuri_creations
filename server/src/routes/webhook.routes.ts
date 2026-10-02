@@ -55,7 +55,9 @@ export async function handleRazorpayWebhook(req: Request, res: Response): Promis
     }
 
     const productSlugs = new Set(order.items.map((item) => item.productVariant.product.slug));
-    revalidate(Array.from(productSlugs, (slug) => `product:${slug}`));
+    // 'product-list' too: home and category cards have no live-stock check, so
+    // without it they keep offering a just-sold-out item for up to 5 minutes.
+    revalidate(['product-list', ...Array.from(productSlugs, (slug) => `product:${slug}`)]);
 
     const emailData = {
       orderNumber: order.orderNumber,

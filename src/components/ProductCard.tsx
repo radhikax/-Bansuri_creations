@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { isOptimizableImage } from '../lib/images';
 import { AnimatePresence, motion } from 'motion/react';
 import { ShoppingCart, Heart, Check } from 'lucide-react';
 import { Card, CardContent, CardFooter } from './ui/card';
@@ -59,6 +60,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <Link href={`/product/${product.slug}`} className="relative h-64 shrink-0 overflow-hidden block">
         <Image
           src={product.image}
+          unoptimized={!isOptimizableImage(product.image)}
           alt={product.name}
           fill
           sizes={CARD_IMAGE_SIZES}

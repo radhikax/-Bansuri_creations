@@ -9,6 +9,10 @@ import type { Product } from '../types';
 // list/product/category via revalidateTag.
 const REVALIDATE_SECONDS = 300;
 const CATALOGUE_TAG = 'catalogue';
+// Every product-list read (home and category pages) also carries this tag, so
+// a sale can refresh list stock without expiring every cached page the way
+// 'catalogue' would. Must match server/src/routes/webhook.routes.ts.
+export const PRODUCT_LIST_TAG = 'product-list';
 
 export async function getCategories(): Promise<AdaptedCategory[]> {
   const { data, error } = await serverApi.GET('/api/categories', {
@@ -18,9 +22,11 @@ export async function getCategories(): Promise<AdaptedCategory[]> {
   return data.map(adaptCategory);
 }
 
-export async function getProducts(): Promise<Product[]> {
+/** All active products, or only `categorySlug`'s when given (filtered by the API, not here). */
+export async function getProducts(categorySlug?: string): Promise<Product[]> {
   const { data, error } = await serverApi.GET('/api/products', {
-    next: { revalidate: REVALIDATE_SECONDS, tags: [CATALOGUE_TAG] },
+    params: { query: categorySlug ? { category: categorySlug } : {} },
+    next: { revalidate: REVALIDATE_SECONDS, tags: [CATALOGUE_TAG, PRODUCT_LIST_TAG] },
   });
   if (error) throw new Error('Failed to load products');
   return data.map(adaptProduct);

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { isOptimizableImage } from '../lib/images';
 import { Card } from './ui/card';
 
 const CARD_IMAGE_SIZES = '(min-width:1024px) 25vw, (min-width:768px) 50vw, 100vw';
@@ -19,6 +20,7 @@ export function CategoryCard({ title, description, image, icon, slug }: Category
         <div className="relative h-64 overflow-hidden">
           <Image
             src={image}
+            unoptimized={!isOptimizableImage(image)}
             alt={title}
             fill
             sizes={CARD_IMAGE_SIZES}

@@ -55,7 +55,35 @@ describe('getProducts', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({ id: product.id, slug: product.slug });
-    expect(lastFetchNext(fetchSpy)).toEqual({ revalidate: 300, tags: ['catalogue'] });
+    expect(lastFetchNext(fetchSpy)).toEqual({ revalidate: 300, tags: ['catalogue', 'product-list'] });
+  });
+
+  it('passes a category slug to the API as ?category= instead of filtering locally', async () => {
+    let requested: URL | undefined;
+    server.use(
+      http.get(`${API_INTERNAL_URL}/api/products`, ({ request }) => {
+        requested = new URL(request.url);
+        return HttpResponse.json([makeApiProduct()]);
+      }),
+    );
+
+    await getProducts('diwali-decor');
+
+    expect(requested?.searchParams.get('category')).toBe('diwali-decor');
+  });
+
+  it('sends no category filter when none is given', async () => {
+    let requested: URL | undefined;
+    server.use(
+      http.get(`${API_INTERNAL_URL}/api/products`, ({ request }) => {
+        requested = new URL(request.url);
+        return HttpResponse.json([]);
+      }),
+    );
+
+    await getProducts();
+
+    expect(requested?.searchParams.has('category')).toBe(false);
   });
 });
 

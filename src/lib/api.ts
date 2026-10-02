@@ -1,84 +1,23 @@
-export interface ApiCategory {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  imageUrl: string;
-  icon: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { operations } from './api/schema';
 
-export interface ApiProductVariant {
-  id: string;
-  productId: string;
-  label: string;
-  price: number | null;
-  stock: number;
-  sku: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// Every API type is derived from the generated OpenAPI contract
+// (src/lib/api/schema.d.ts), never hand-written: a backend field change
+// regenerates the schema and then fails typecheck wherever the frontend
+// still reads the old shape. Requests go through serverApi/browserApi in
+// ./api/client.
 
-export interface ApiProduct {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  categoryId: string;
-  category: ApiCategory;
-  basePrice: number;
-  originalPrice: number | null;
-  imageUrl: string;
-  images: string[];
-  rating: number;
-  isActive: boolean;
-  variants: ApiProductVariant[];
-  createdAt: string;
-  updatedAt: string;
-}
+type JsonContent<T> = T extends { content: { 'application/json': infer J } } ? J : never;
 
-// Same-origin by default: Vite proxies /api in dev and the host rewrites it in
-// production, via next.config.ts's rewrite, so the admin cookie stays
-// first-party. NEXT_PUBLIC_API_BASE_URL overrides.
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+/** The JSON body of an operation's response for `status` (200 by default). */
+export type ResponseOf<
+  Op extends keyof operations,
+  Status extends keyof operations[Op]['responses'] = 200 & keyof operations[Op]['responses'],
+> = JsonContent<operations[Op]['responses'][Status]>;
 
-export const REQUEST_TIMEOUT_MS = 10_000;
+/** The JSON request body an operation accepts. */
+export type RequestBodyOf<Op extends keyof operations> = JsonContent<NonNullable<operations[Op]['requestBody']>>;
 
-async function fetchJson<T>(path: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`Request to ${path} timed out`)), REQUEST_TIMEOUT_MS);
-  });
-  try {
-    const res = await Promise.race([fetch(`${API_BASE_URL}${path}`), timeout]);
-    if (!res.ok) {
-      throw new Error(`Request to ${path} failed with status ${res.status}`);
-    }
-    return await Promise.race([res.json() as Promise<T>, timeout]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-export function getCategories(): Promise<ApiCategory[]> {
-  return fetchJson<ApiCategory[]>('/api/categories');
-}
-
-export function getProducts(categorySlug?: string): Promise<ApiProduct[]> {
-  const query = categorySlug ? `?category=${encodeURIComponent(categorySlug)}` : '';
-  return fetchJson<ApiProduct[]>(`/api/products${query}`);
-}
-
-export function getProductBySlug(slug: string): Promise<ApiProduct> {
-  return fetchJson<ApiProduct>(`/api/products/${encodeURIComponent(slug)}`);
-}
-
-export interface ShippingSettings {
-  flatShippingFee: number;
-  freeShippingThreshold: number;
-}
-
-export function getShippingSettings(): Promise<ShippingSettings> {
-  return fetchJson<ShippingSettings>('/api/settings/shipping');
-}
+export type ApiCategory = ResponseOf<'listCategories'>[number];
+export type ApiProduct = ResponseOf<'getProduct'>;
+export type ApiProductVariant = ApiProduct['variants'][number];
+export type ShippingSettings = ResponseOf<'getShippingSettings'>;

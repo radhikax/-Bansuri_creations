@@ -21,6 +21,16 @@ function renderCard(product: Product) {
 }
 
 describe('ProductCard', () => {
+  it('serves an image from a host outside the optimizer allowlist unoptimized, so it still loads', () => {
+    renderCard(makeProduct({ image: 'https://res.cloudinary.com/demo/image/upload/diya.jpg' }));
+    expect(screen.getByRole('img', { name: 'Brass Diya' })).toHaveAttribute('data-unoptimized', 'true');
+  });
+
+  it('still optimizes an allowlisted Unsplash image', () => {
+    renderCard(makeProduct({ image: 'https://images.unsplash.com/photo-1?w=400' }));
+    expect(screen.getByRole('img', { name: 'Brass Diya' })).not.toHaveAttribute('data-unoptimized');
+  });
+
   it('shows name, category, price, rating and links to the detail page', () => {
     renderCard(makeProduct({ rating: 4.5 }));
     expect(screen.getByRole('heading', { name: 'Brass Diya' })).toBeInTheDocument();

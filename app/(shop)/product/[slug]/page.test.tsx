@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import { notFound } from 'next/navigation';
 import { CartProvider } from '@/components/cart/CartProvider';
 import { adaptProduct } from '@/lib/adapters';
-import { makeApiProduct } from '@/test/fixtures';
+import { makeApiProduct, makeApiVariant } from '@/test/fixtures';
 
 const { getProductBySlug } = vi.hoisted(() => ({
   getProductBySlug: vi.fn(),
@@ -28,6 +28,21 @@ describe('app/product/[slug]/page', () => {
 
     await expect(Page({ params: Promise.resolve({ slug: 'nope' }) })).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFound).toHaveBeenCalled();
+  });
+
+  it('renders the Open Graph price as <meta property=...>, which OG parsers read (not name=)', async () => {
+    const raw = makeApiProduct({
+      slug: 'brass-diya',
+      basePrice: 900,
+      variants: [makeApiVariant({ id: 'v-1', price: 650, stock: 2 }), makeApiVariant({ id: 'v-2', price: 800, stock: 1 })],
+    });
+    getProductBySlug.mockResolvedValue({ product: adaptProduct(raw), raw });
+
+    const { container } = await renderPage('brass-diya');
+
+    expect(container.querySelector('meta[property="product:price:amount"]')?.getAttribute('content')).toBe('650');
+    expect(container.querySelector('meta[property="product:price:currency"]')?.getAttribute('content')).toBe('INR');
+    expect(container.querySelector('meta[name="product:price:amount"]')).toBeNull();
   });
 
   it('escapes a </script> in the product description inside the rendered JSON-LD script tag', async () => {
