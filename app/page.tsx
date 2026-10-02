@@ -10,7 +10,11 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: SITE_NAME,
+    // `title: SITE_NAME` (a plain string) would get the root layout's
+    // `'%s | Bansuri Creations'` template applied, doubling up into
+    // "Bansuri Creations | Bansuri Creations". `absolute` opts out of the
+    // template so the home page's title stays the clean site name.
+    title: { absolute: SITE_NAME },
     description: SITE_DESCRIPTION,
     alternates: { canonical: absoluteUrl('/') },
     openGraph: { type: 'website', title: SITE_NAME, description: SITE_DESCRIPTION },

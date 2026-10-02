@@ -7,14 +7,18 @@ import { Cart } from '@/components/Cart';
 import { CartProvider } from '@/components/cart/CartProvider';
 import { Toaster } from '@/components/ui/sonner';
 import { getCategories } from '@/lib/catalogue';
+import { absoluteUrl, SITE_DESCRIPTION, SITE_NAME } from '@/lib/seo';
 
 const heading = Cormorant_Garamond({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-heading' });
 const body = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-body' });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:8080'),
-  title: { default: 'Bansuri Creations', template: '%s | Bansuri Creations' },
-  description: 'Handmade traditional decor, wedding packing and personalised gifts.',
+  // One source of truth for NEXT_PUBLIC_SITE_URL and its local fallback:
+  // src/lib/seo.ts's absoluteUrl, so this never disagrees with the
+  // canonical/OG URLs the page-level generateMetadata functions build.
+  metadataBase: new URL(absoluteUrl('/')),
+  title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
 };
 
 // The nav's categories are fetched here on every request — see app/page.tsx

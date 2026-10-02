@@ -55,6 +55,30 @@ describe('productPrice', () => {
     const product = makeApiProduct({ basePrice: 500, variants: [] });
     expect(productPrice(product)).toBe(500);
   });
+
+  it('competes the null-substituted basePrice against non-null prices, picking the substituted basePrice when it is lowest', () => {
+    const product = makeApiProduct({
+      basePrice: 250,
+      variants: [
+        makeApiVariant({ id: 'v-1', price: null, stock: 1 }),
+        makeApiVariant({ id: 'v-2', price: 300, stock: 1 }),
+        makeApiVariant({ id: 'v-3', price: 500, stock: 1 }),
+      ],
+    });
+    expect(productPrice(product)).toBe(250);
+  });
+
+  it('competes the null-substituted basePrice against non-null prices, picking a non-null price when it is lowest', () => {
+    const product = makeApiProduct({
+      basePrice: 400,
+      variants: [
+        makeApiVariant({ id: 'v-1', price: null, stock: 1 }),
+        makeApiVariant({ id: 'v-2', price: 300, stock: 1 }),
+        makeApiVariant({ id: 'v-3', price: 500, stock: 1 }),
+      ],
+    });
+    expect(productPrice(product)).toBe(300);
+  });
 });
 
 describe('productInStock', () => {
@@ -111,6 +135,19 @@ describe('productJsonLd', () => {
     const product = makeApiProduct({ images: [], imageUrl: 'https://img.test/fallback.jpg' });
     const jsonLd = productJsonLd(product, 'https://bansuricreations.example/product/brass-diya');
     expect(jsonLd.image).toEqual(['https://img.test/fallback.jpg']);
+  });
+
+  it('prices the offer off a mix of null and non-null variant prices', () => {
+    const product = makeApiProduct({
+      basePrice: 400,
+      variants: [
+        makeApiVariant({ id: 'v-1', price: null, stock: 0 }),
+        makeApiVariant({ id: 'v-2', price: 300, stock: 1 }),
+        makeApiVariant({ id: 'v-3', price: 500, stock: 0 }),
+      ],
+    });
+    const jsonLd = productJsonLd(product, 'https://bansuricreations.example/product/brass-diya');
+    expect((jsonLd.offers as Record<string, unknown>).price).toBe('300');
   });
 });
 
