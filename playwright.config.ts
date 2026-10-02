@@ -20,14 +20,19 @@ export default defineConfig({
       cwd: 'server',
       url: 'http://localhost:4000/api/health',
       reuseExistingServer: false,
-      env: { DATABASE_URL: E2E_DATABASE_URL },
+      env: { DATABASE_URL: E2E_DATABASE_URL, WEB_INTERNAL_URL: 'http://localhost:5173', REVALIDATE_SECRET: 'e2e-revalidate-secret' },
       timeout: 60_000,
     },
     {
-      command: 'npm run dev -- --port 5173 --strictPort',
+      // Never reuse: must be the production build carrying REVALIDATE_SECRET —
+      // a stale dev server already on :5173 would otherwise be silently reused
+      // and wouldn't have the secret the /internal/revalidate route checks, so
+      // the admin API's fire-and-forget revalidate calls would 401 silently.
+      command: 'npm run build && npm run start',
       url: 'http://localhost:5173',
-      reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
+      reuseExistingServer: false,
+      env: { API_INTERNAL_URL: 'http://localhost:4000', REVALIDATE_SECRET: 'e2e-revalidate-secret' },
+      timeout: 240_000,
     },
   ],
 });

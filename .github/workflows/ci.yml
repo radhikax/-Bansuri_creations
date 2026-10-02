@@ -161,6 +161,14 @@ jobs:
         working-directory: server
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
+      - name: Upload visual screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-screenshots
+          path: test-results/visual/
+          retention-days: 14
+          if-no-files-found: warn
       - name: Upload screenshots and traces
         if: failure()
         uses: actions/upload-artifact@v4

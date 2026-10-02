@@ -5,4 +5,12 @@ export const E2E_DATABASE_URL =
 export const SEED_ADMIN_EMAIL = 'admin@example.com';
 export const SEED_ADMIN_PASSWORD = 'changeme123';
 
+// admin.spec.ts changes the seed password to this value and never changes it back (by
+// design — it proves the old password stops working). Playwright doesn't guarantee
+// admin.spec.ts and seo.spec.ts run in a particular order relative to each other
+// (both workers: 1 and alphabetical order would in fact run admin.spec.ts first), so
+// seo.spec.ts's own admin login tries SEED_ADMIN_PASSWORD then falls back to this,
+// rather than assuming a fragile cross-file run order.
+export const CHANGED_ADMIN_PASSWORD = 'e2e-new-password-1';
+
 export const API_ORIGIN = 'http://localhost:4000';

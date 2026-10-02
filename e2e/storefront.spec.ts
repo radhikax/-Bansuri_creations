@@ -35,6 +35,9 @@ test('add to cart and change the quantity', async ({ page, request }) => {
 
   await page.goto('/');
   await cardFor(page, product.name).getByRole('button', { name: 'Add to Cart' }).click();
+  // Adding an item no longer opens the cart itself (only the header's cart
+  // button does — see src/components/Cart.test.tsx's AutoOpen comment).
+  await page.locator('[data-cart-icon-target]').click();
 
   const cart = page.getByRole('dialog', { name: /Shopping Cart/ });
   await expect(cart).toBeVisible();

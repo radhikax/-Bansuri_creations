@@ -76,6 +76,9 @@ test('the cart ships free at the store threshold and the total equals the subtot
 
   await page.goto(`/product/${product.slug}`);
   await page.getByRole('button', { name: /add to cart/i }).first().click();
+  // Adding an item no longer opens the cart itself (only the header's cart
+  // button does — see src/components/Cart.test.tsx's AutoOpen comment).
+  await page.locator('[data-cart-icon-target]').click();
   const cart = page.getByRole('dialog', { name: /Shopping Cart/ });
   await expect(cart).toBeVisible();
   for (let i = 1; i < quantity; i++) {
@@ -89,6 +92,22 @@ test('the cart ships free at the store threshold and the total equals the subtot
   await expect(cart.getByText('Free', { exact: true })).toBeVisible();
   await expect(totalRow.getByText(`₹${subtotal}`, { exact: true })).toBeVisible();
   expect(refWarnings).toEqual([]);
+});
+
+test('the cart persists across a reload', async ({ page, request }) => {
+  const products = (await (await request.get(`${API_ORIGIN}/api/products`)).json()) as ApiProduct[];
+  const product = products[0];
+
+  await page.goto(`/product/${product.slug}`);
+  await page.getByRole('button', { name: /add to cart/i }).first().click();
+
+  await page.reload();
+  await expect(page.locator('[data-cart-icon-target]').getByText('1', { exact: true })).toBeVisible();
+
+  await page.locator('[data-cart-icon-target]').click();
+  const cart = page.getByRole('dialog', { name: /Shopping Cart/ });
+  await expect(cart).toBeVisible();
+  await expect(cart.getByText(product.name, { exact: true })).toBeVisible();
 });
 
 test('the hero buttons scroll to their sections', async ({ page }) => {

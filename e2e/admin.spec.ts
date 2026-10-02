@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD } from './env';
+import { CHANGED_ADMIN_PASSWORD, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD } from './env';
 
-const NEW_PASSWORD = 'e2e-new-password-1';
+const NEW_PASSWORD = CHANGED_ADMIN_PASSWORD;
 
 async function logIn(page: Page, password: string) {
   await page.goto('/admin/login');
@@ -9,6 +9,23 @@ async function logIn(page: Page, password: string) {
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Log in' }).click();
 }
+
+// Both kept ahead of the password-change test below, which leaves the seed
+// password changed for good (by design) — anything still logging in with
+// SEED_ADMIN_PASSWORD must run before it.
+test('saving admin settings shows a toast from the shared root Toaster', async ({ page }) => {
+  await logIn(page, SEED_ADMIN_PASSWORD);
+  await expect(page).toHaveURL('/admin');
+
+  await page.goto('/admin/settings');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('Settings saved')).toBeVisible();
+});
+
+test('an unknown admin route 404s', async ({ request }) => {
+  const response = await request.get('/admin/does-not-exist');
+  expect(response.status()).toBe(404);
+});
 
 test('changing the password keeps this session and signs out the others', async ({ browser }) => {
   const contextA = await browser.newContext();
