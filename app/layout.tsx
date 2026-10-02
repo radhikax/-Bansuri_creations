@@ -3,6 +3,8 @@ import { Cormorant_Garamond, Inter } from 'next/font/google';
 import '../src/styles/index.css';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { Cart } from '@/components/Cart';
+import { CartProvider } from '@/components/cart/CartProvider';
 import { Toaster } from '@/components/ui/sonner';
 import { getCategories } from '@/lib/catalogue';
 
@@ -25,9 +27,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={`${heading.variable} ${body.variable}`}>
       <body>
-        <Header categories={categories} />
-        {children}
-        <Footer categories={categories} />
+        <CartProvider>
+          <Header categories={categories} />
+          {children}
+          <Footer categories={categories} />
+          <Cart />
+        </CartProvider>
         <Toaster />
       </body>
     </html>

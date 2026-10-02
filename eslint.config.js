@@ -41,10 +41,6 @@ export default tseslint.config(
     rules: {
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs['core-web-vitals'].rules,
-      // The storefront's images go through a bespoke Unsplash URL optimizer
-      // (src/lib/images.ts) with their own srcSet/loading logic, not
-      // next/image — so this rule has nothing useful to flag here.
-      '@next/next/no-img-element': 'off',
     },
   },
   {

@@ -11,18 +11,15 @@ import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger 
 import logo from '../assets/933b21dd0e7f43328405b2f83783e6907d3d0236.png';
 import { CART_ICON_ATTR } from '../lib/flyToCart';
 import type { AdaptedCategory } from '../lib/adapters';
+import { useCart } from './cart/CartProvider';
 
 interface HeaderProps {
-  cartItemsCount?: number;
-  onCartClick?: () => void;
   categories: AdaptedCategory[];
 }
 
-// cartItemsCount/onCartClick default to an inert, no-cart state: app/layout.tsx
-// (a server component) can't pass a client callback across the boundary, and
-// cart wiring (Task 6) lands separately via useCart()'s count/open.
-export function Header({ cartItemsCount = 0, onCartClick = () => {}, categories }: HeaderProps) {
+export function Header({ categories }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { count, open } = useCart();
   const navLinks = [
     { to: '/', label: 'Home' },
     ...categories.map((c) => ({ to: `/category/${c.slug}`, label: c.title })),
@@ -73,18 +70,18 @@ export function Header({ cartItemsCount = 0, onCartClick = () => {}, categories 
           </nav>
 
           {/* Cart Button */}
-          <Button variant="outline" className="relative" onClick={onCartClick} {...{ [CART_ICON_ATTR]: true }}>
+          <Button variant="outline" className="relative" onClick={open} {...{ [CART_ICON_ATTR]: true }}>
             <ShoppingCart className="h-5 w-5" />
-            {cartItemsCount > 0 && (
+            {count > 0 && (
               <motion.div
-                key={cartItemsCount}
+                key={count}
                 initial={{ scale: 1.5 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 15 }}
                 className="absolute -top-2 -right-2"
               >
                 <Badge className="h-5 w-5 flex items-center justify-center p-0 bg-primary">
-                  {cartItemsCount}
+                  {count}
                 </Badge>
               </motion.div>
             )}

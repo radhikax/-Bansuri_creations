@@ -1,97 +1,113 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useState } from 'react';
-import { Cart, type CartItem } from './Cart';
-import type { ShippingSettings } from '../lib/api';
-import { makeProduct } from '../test/fixtures';
+import { useEffect } from 'react';
+import { http, HttpResponse } from 'msw';
+import { Cart } from './Cart';
+import { CartProvider, useCart, type CartItem } from './cart/CartProvider';
+import { server } from '../test/server';
+import { API_URL, makeProduct } from '../test/fixtures';
 
-const diya: CartItem = { ...makeProduct(), quantity: 2 }; // 2 x 500
+const STORAGE_KEY = 'bansuri-cart-v1';
+
+const diya: CartItem = { ...makeProduct(), quantity: 2, variantId: 'prod-1' }; // 2 x 500
 const poshak: CartItem = {
   ...makeProduct({ id: 'prod-2', slug: 'kanha-poshak', name: 'Kanha Poshak', price: 800 }),
   quantity: 1,
+  variantId: 'prod-2',
 };
 
 // A high threshold keeps the existing ₹50-shipping assertions meaningful.
-const testShipping: ShippingSettings = { flatShippingFee: 50, freeShippingThreshold: 5000 };
+const testShipping = { flatShippingFee: 50, freeShippingThreshold: 5000 };
 
-function renderCart(items: CartItem[], overrides: Partial<React.ComponentProps<typeof Cart>> = {}) {
-  const props = {
-    isOpen: true,
-    onClose: vi.fn(),
-    onUpdateQuantity: vi.fn(),
-    onRemoveItem: vi.fn(),
-    shippingSettings: testShipping,
-    ...overrides,
-  };
-  render(<Cart items={items} {...props} />);
-  return props;
+function mockShipping(settings: { flatShippingFee: number; freeShippingThreshold: number }) {
+  server.use(http.get(`${API_URL}/api/settings/shipping`, () => HttpResponse.json(settings)));
 }
 
-/** Stateful wrapper so quantity/remove behave like the real app. */
-function Harness({ initial, onClose }: { initial: CartItem[]; onClose?: () => void }) {
-  const [items, setItems] = useState(initial);
-  return (
-    <Cart
-      isOpen
-      onClose={onClose ?? (() => {})}
-      items={items}
-      onUpdateQuantity={(id, quantity) =>
-        setItems((prev) => prev.map((i) => (i.id === id ? { ...i, quantity } : i)))
-      }
-      onRemoveItem={(id) => setItems((prev) => prev.filter((i) => i.id !== id))}
-      shippingSettings={testShipping}
-    />
+/** Opens the cart sheet on mount — in the real app, Header's cart button does this via useCart().open(). */
+function AutoOpen() {
+  const { open } = useCart();
+  useEffect(() => {
+    open();
+  }, [open]);
+  return null;
+}
+
+function renderCart(items: CartItem[] = [], { opened = true } = {}) {
+  if (items.length > 0) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: 1, items }));
+  }
+  render(
+    <CartProvider>
+      {opened && <AutoOpen />}
+      <Cart />
+    </CartProvider>,
   );
 }
 
+function itemRow(name: string) {
+  return screen.getByText(name).closest('div')!;
+}
+
+beforeEach(() => {
+  window.localStorage.clear();
+  mockShipping(testShipping);
+});
+
 describe('Cart', () => {
-  it('shows an empty state with no checkout button', () => {
+  it('shows an empty state with no checkout button', async () => {
     renderCart([]);
-    expect(screen.getByText('Your cart is empty')).toBeInTheDocument();
+    expect(await screen.findByText('Your cart is empty')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /proceed to checkout/i })).not.toBeInTheDocument();
   });
 
-  it('lists items with line totals and the item count in the title', () => {
+  it('lists items with line totals and the item count in the title', async () => {
     renderCart([diya, poshak]);
-    expect(screen.getByText('Shopping Cart (2)')).toBeInTheDocument();
+    expect(await screen.findByText('Shopping Cart (2)')).toBeInTheDocument();
     expect(screen.getByText('Brass Diya')).toBeInTheDocument();
     expect(screen.getByText('₹1000')).toBeInTheDocument(); // 2 x 500 line total
     expect(screen.getByText('Kanha Poshak')).toBeInTheDocument();
   });
 
-  it('computes subtotal, ₹50 shipping and total', () => {
+  it('computes subtotal, ₹50 shipping and total', async () => {
     renderCart([diya, poshak]); // 1000 + 800
+    await screen.findByText('Shopping Cart (2)');
     const summary = screen.getByText('Subtotal').parentElement!;
+    await waitFor(() => expect(screen.getByText('₹50')).toBeInTheDocument());
     expect(within(summary).getByText('₹1800')).toBeInTheDocument();
-    expect(screen.getByText('₹50')).toBeInTheDocument();
     expect(screen.getByText('₹1850')).toBeInTheDocument();
   });
 
-  it('increments and decrements quantity through callbacks', async () => {
+  it('increments and decrements quantity', async () => {
     const user = userEvent.setup();
-    const props = renderCart([diya]);
-    const buttons = screen.getAllByRole('button');
-    const minus = buttons.find((b) => b.querySelector('svg.lucide-minus'))!;
-    const plus = buttons.find((b) => b.querySelector('svg.lucide-plus'))!;
+    renderCart([{ ...diya, quantity: 1 }]);
+    await screen.findByText('Brass Diya');
+    const row = itemRow('Brass Diya');
+    const minus = within(row).getAllByRole('button').find((b) => b.querySelector('svg.lucide-minus'))!;
+    const plus = within(row).getAllByRole('button').find((b) => b.querySelector('svg.lucide-plus'))!;
+
     await user.click(plus);
-    expect(props.onUpdateQuantity).toHaveBeenLastCalledWith('prod-1', 3);
+    expect(within(row).getByText('2')).toBeInTheDocument();
     await user.click(minus);
-    expect(props.onUpdateQuantity).toHaveBeenLastCalledWith('prod-1', 1);
+    expect(within(row).getByText('1')).toBeInTheDocument();
   });
 
   it('never decrements below 1', async () => {
     const user = userEvent.setup();
-    const props = renderCart([{ ...diya, quantity: 1 }]);
-    const minus = screen.getAllByRole('button').find((b) => b.querySelector('svg.lucide-minus'))!;
+    renderCart([{ ...diya, quantity: 1 }]);
+    await screen.findByText('Brass Diya');
+    const row = itemRow('Brass Diya');
+    const minus = within(row).getAllByRole('button').find((b) => b.querySelector('svg.lucide-minus'))!;
     await user.click(minus);
-    expect(props.onUpdateQuantity).toHaveBeenCalledWith('prod-1', 1);
+    expect(within(row).getByText('1')).toBeInTheDocument();
   });
 
   it('removes an item', async () => {
     const user = userEvent.setup();
-    render(<Harness initial={[diya, poshak]} />);
-    const trash = screen.getAllByRole('button').find((b) => b.querySelector('svg.lucide-trash-2'))!;
+    renderCart([diya, poshak]);
+    await screen.findByText('Brass Diya');
+    const row = itemRow('Brass Diya');
+    const trash = within(row).getAllByRole('button').find((b) => b.querySelector('svg.lucide-trash-2'))!;
     await user.click(trash);
     expect(screen.queryByText('Brass Diya')).not.toBeInTheDocument();
     expect(screen.getByText('Kanha Poshak')).toBeInTheDocument();
@@ -99,26 +115,32 @@ describe('Cart', () => {
   });
 
   it('does not render when closed', () => {
-    renderCart([diya], { isOpen: false });
+    renderCart([diya], { opened: false });
     expect(screen.queryByText(/shopping cart/i)).not.toBeInTheDocument();
   });
 
-  it('shows free shipping at or above the store threshold', () => {
-    renderCart([diya, poshak], { shippingSettings: { flatShippingFee: 50, freeShippingThreshold: 999 } }); // 1800
+  it('shows free shipping at or above the store threshold', async () => {
+    mockShipping({ flatShippingFee: 50, freeShippingThreshold: 999 });
+    renderCart([diya, poshak]); // 1800
+    await screen.findByText('Shopping Cart (2)');
     const summary = screen.getByText('Subtotal').closest('div')!.parentElement!;
-    expect(within(summary).getByText('Free')).toBeInTheDocument();
+    await waitFor(() => expect(within(summary).getByText('Free')).toBeInTheDocument());
     expect(within(summary).getAllByText('₹1800')).toHaveLength(2); // subtotal and total
   });
 
-  it('charges the flat fee below the store threshold', () => {
-    renderCart([{ ...diya, quantity: 1 }], { shippingSettings: { flatShippingFee: 75, freeShippingThreshold: 999 } }); // 500
-    expect(screen.getByText('₹75')).toBeInTheDocument();
+  it('charges the flat fee below the store threshold', async () => {
+    mockShipping({ flatShippingFee: 75, freeShippingThreshold: 999 });
+    renderCart([{ ...diya, quantity: 1 }]); // 500
+    await screen.findByText('Shopping Cart (1)');
+    await waitFor(() => expect(screen.getByText('₹75')).toBeInTheDocument());
     expect(screen.getByText('₹575')).toBeInTheDocument();
   });
 
-  it('says "Calculated at checkout" and totals the subtotal when settings are unavailable', () => {
-    renderCart([diya, poshak], { shippingSettings: null }); // 1800
-    expect(screen.getByText('Calculated at checkout')).toBeInTheDocument();
+  it('says "Calculated at checkout" and totals the subtotal when settings are unavailable', async () => {
+    server.use(http.get(`${API_URL}/api/settings/shipping`, () => HttpResponse.error()));
+    renderCart([diya, poshak]); // 1800
+    await screen.findByText('Shopping Cart (2)');
+    await waitFor(() => expect(screen.getByText('Calculated at checkout')).toBeInTheDocument());
     expect(screen.getAllByText('₹1800')).toHaveLength(2);
   });
 
@@ -147,9 +169,32 @@ describe('Cart', () => {
       await user.type(screen.getByLabelText('Phone'), '9876543210');
     }
 
+    it('closes the cart sheet and opens the checkout dialog on Proceed to Checkout', async () => {
+      const user = userEvent.setup();
+      renderCart([diya]);
+      await screen.findByRole('dialog', { name: /shopping cart/i });
+
+      await user.click(screen.getByRole('button', { name: /proceed to checkout/i }));
+
+      expect(screen.queryByRole('dialog', { name: /shopping cart/i })).not.toBeInTheDocument();
+      expect(await screen.findByRole('dialog', { name: 'Shipping' })).toBeInTheDocument();
+    });
+
+    it('Back to cart closes the checkout dialog and reopens the cart sheet', async () => {
+      const user = userEvent.setup();
+      renderCart([diya]);
+      await openCheckout(user);
+      await screen.findByRole('dialog', { name: 'Shipping' });
+
+      await user.click(screen.getByRole('button', { name: 'Back to cart' }));
+
+      expect(screen.queryByRole('dialog', { name: 'Shipping' })).not.toBeInTheDocument();
+      expect(await screen.findByRole('dialog', { name: /shopping cart/i })).toBeInTheDocument();
+    });
+
     it('starts on the shipping step with Continue disabled until every field is filled', async () => {
       const user = userEvent.setup();
-      render(<Harness initial={[diya]} />);
+      renderCart([diya]);
       await openCheckout(user);
       expect(screen.getByRole('heading', { name: 'Shipping' })).toBeInTheDocument();
       const next = screen.getByRole('button', { name: 'Continue' });
@@ -161,7 +206,7 @@ describe('Cart', () => {
 
     it('keeps Continue disabled when a field is only whitespace', async () => {
       const user = userEvent.setup();
-      render(<Harness initial={[diya]} />);
+      renderCart([diya]);
       await openCheckout(user);
       await fillShipping(user);
       await user.clear(screen.getByLabelText('City'));
@@ -169,18 +214,9 @@ describe('Cart', () => {
       expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
     });
 
-    it('cancel closes the dialog', async () => {
-      const user = userEvent.setup();
-      render(<Harness initial={[diya]} />);
-      await openCheckout(user);
-      await user.click(screen.getByRole('button', { name: 'Cancel' }));
-      expect(screen.queryByRole('heading', { name: 'Shipping' })).not.toBeInTheDocument();
-    });
-
     it('walks shipping → payment → review and pays', async () => {
       const user = userEvent.setup();
-      const onClose = vi.fn();
-      render(<Harness initial={[diya]} onClose={onClose} />);
+      renderCart([diya]);
       await openCheckout(user);
       await fillShipping(user);
       await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -198,25 +234,26 @@ describe('Cart', () => {
       await user.click(screen.getByRole('button', { name: 'Pay ₹1050' }));
 
       expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('cod'));
-      expect(onClose).toHaveBeenCalled();
       expect(screen.queryByRole('heading', { name: 'Review' })).not.toBeInTheDocument();
+      // Paying doesn't reopen the cart sheet — it was already closed by Proceed to Checkout.
+      expect(screen.queryByRole('dialog', { name: /shopping cart/i })).not.toBeInTheDocument();
     });
 
     it('back navigation preserves the entered shipping details', async () => {
       const user = userEvent.setup();
-      render(<Harness initial={[diya]} />);
+      renderCart([diya]);
       await openCheckout(user);
       await fillShipping(user);
       await user.click(screen.getByRole('button', { name: 'Continue' }));
       await screen.findByText('1 item in cart');
-      await user.click(screen.getByRole('button', { name: /back/i }));
+      await user.click(screen.getByRole('button', { name: /^back$/i }));
 
       expect(await screen.findByLabelText('Full name')).toHaveValue('Asha Rao');
     });
 
     it('defaults payment to UPI', async () => {
       const user = userEvent.setup();
-      render(<Harness initial={[diya]} />);
+      renderCart([diya]);
       await openCheckout(user);
       await fillShipping(user);
       await user.click(screen.getByRole('button', { name: 'Continue' }));
