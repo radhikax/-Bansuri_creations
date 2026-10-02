@@ -1,3 +1,4 @@
+import { browserApi } from '../../lib/api/client';
 import type { ApiCategory, ApiProduct, ApiProductVariant } from '../../lib/api';
 
 export type { ApiCategory, ApiProduct, ApiProductVariant };
@@ -81,11 +82,6 @@ export interface CategoryInput {
   icon: string;
 }
 
-// Same-origin by default: next.config.ts rewrites /api in dev and the host
-// rewrites it in production, so the admin cookie stays first-party.
-// NEXT_PUBLIC_API_BASE_URL overrides.
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
-
 export class AdminUnauthorizedError extends Error {
   constructor() {
     super('Not authenticated');
@@ -104,42 +100,41 @@ export class AdminApiError extends Error {
   }
 }
 
-async function adminFetch<T>(
-  path: string,
-  init?: RequestInit,
-  opts: { unauthorizedIsError?: boolean } = {},
-): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-    ...init,
-  });
+interface AdminErrorBody {
+  error?: string;
+  details?: unknown;
+}
 
-  if (res.status === 401 && !opts.unauthorizedIsError) {
+// Unwraps an openapi-fetch `{ data, error, response }` result into the plain
+// value the exported functions resolve with, or throws. `browserApi` already
+// sets `credentials: 'include'`, so the admin cookie rides along as before.
+function unwrap<T>(
+  result: { data?: unknown; error?: unknown; response: Response },
+  path: string,
+  opts: { unauthorizedIsError?: boolean } = {},
+): T {
+  const { data, error, response } = result;
+
+  if (response.status === 401 && !opts.unauthorizedIsError) {
     throw new AdminUnauthorizedError();
   }
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string; details?: unknown };
-    throw new AdminApiError(body.error ?? `Request to ${path} failed with status ${res.status}`, body.details, res.status);
+  if (!response.ok) {
+    const body = (typeof error === 'object' && error !== null ? error : {}) as AdminErrorBody;
+    throw new AdminApiError(body.error ?? `Request to ${path} failed with status ${response.status}`, body.details, response.status);
   }
-  if (res.status === 204) {
-    return undefined as T;
-  }
-  return res.json() as Promise<T>;
+  return data as T;
 }
 
 // Auth. adminLogin's 401 is a normal "wrong credentials" failure, not a session
 // expiry — it must not trigger the central redirect-to-login handling.
-export function adminLogin(email: string, password: string): Promise<{ success: true }> {
-  return adminFetch(
-    '/api/admin/login',
-    { method: 'POST', body: JSON.stringify({ email, password }) },
-    { unauthorizedIsError: true },
-  );
+export async function adminLogin(email: string, password: string): Promise<{ success: true }> {
+  const result = await browserApi.POST('/api/admin/login', { body: { email, password } });
+  return unwrap<{ success: true }>(result, '/api/admin/login', { unauthorizedIsError: true });
 }
 
-export function adminLogout(): Promise<{ success: true }> {
-  return adminFetch('/api/admin/logout', { method: 'POST' });
+export async function adminLogout(): Promise<{ success: true }> {
+  const result = await browserApi.POST('/api/admin/logout');
+  return unwrap<{ success: true }>(result, '/api/admin/logout');
 }
 
 // A 401 with "Current password is incorrect" here means the current password
@@ -152,11 +147,8 @@ const WRONG_CURRENT_PASSWORD_MESSAGE = 'Current password is incorrect';
 
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   try {
-    await adminFetch(
-      '/api/admin/password',
-      { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) },
-      { unauthorizedIsError: true },
-    );
+    const result = await browserApi.POST('/api/admin/password', { body: { currentPassword, newPassword } });
+    unwrap<{ success: true }>(result, '/api/admin/password', { unauthorizedIsError: true });
   } catch (err) {
     if (err instanceof AdminApiError && err.status === 401 && err.message !== WRONG_CURRENT_PASSWORD_MESSAGE) {
       throw new AdminUnauthorizedError();
@@ -166,60 +158,71 @@ export async function changePassword(currentPassword: string, newPassword: strin
 }
 
 // Settings
-export function getStoreSettings(): Promise<StoreSettings> {
-  return adminFetch('/api/admin/settings');
+export async function getStoreSettings(): Promise<StoreSettings> {
+  const result = await browserApi.GET('/api/admin/settings');
+  return unwrap<StoreSettings>(result, '/api/admin/settings');
 }
 
-export function updateStoreSettings(data: { flatShippingFee: number; freeShippingThreshold: number }): Promise<StoreSettings> {
-  return adminFetch('/api/admin/settings', { method: 'PUT', body: JSON.stringify(data) });
+export async function updateStoreSettings(data: { flatShippingFee: number; freeShippingThreshold: number }): Promise<StoreSettings> {
+  const result = await browserApi.PUT('/api/admin/settings', { body: data });
+  return unwrap<StoreSettings>(result, '/api/admin/settings');
 }
 
 // Products
-export function getAdminProducts(): Promise<ApiProduct[]> {
-  return adminFetch('/api/admin/products');
+export async function getAdminProducts(): Promise<ApiProduct[]> {
+  const result = await browserApi.GET('/api/admin/products');
+  return unwrap<ApiProduct[]>(result, '/api/admin/products');
 }
 
-export function createAdminProduct(data: CreateProductInput): Promise<ApiProduct> {
-  return adminFetch('/api/admin/products', { method: 'POST', body: JSON.stringify(data) });
+export async function createAdminProduct(data: CreateProductInput): Promise<ApiProduct> {
+  const result = await browserApi.POST('/api/admin/products', { body: data });
+  return unwrap<ApiProduct>(result, '/api/admin/products');
 }
 
-export function updateAdminProduct(id: string, data: UpdateProductInput): Promise<ApiProduct> {
-  return adminFetch(`/api/admin/products/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) });
+export async function updateAdminProduct(id: string, data: UpdateProductInput): Promise<ApiProduct> {
+  const result = await browserApi.PUT('/api/admin/products/{id}', { params: { path: { id } }, body: data });
+  return unwrap<ApiProduct>(result, `/api/admin/products/${id}`);
 }
 
-export function updateAdminVariant(productId: string, variantId: string, data: AdminVariantInput): Promise<ApiProductVariant> {
-  return adminFetch(
-    `/api/admin/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}`,
-    { method: 'PUT', body: JSON.stringify(data) },
-  );
+export async function updateAdminVariant(productId: string, variantId: string, data: AdminVariantInput): Promise<ApiProductVariant> {
+  const result = await browserApi.PUT('/api/admin/products/{id}/variants/{variantId}', {
+    params: { path: { id: productId, variantId } },
+    body: data,
+  });
+  return unwrap<ApiProductVariant>(result, `/api/admin/products/${productId}/variants/${variantId}`);
 }
 
 // Categories
-export function getAdminCategories(): Promise<ApiCategory[]> {
-  return adminFetch('/api/admin/categories');
+export async function getAdminCategories(): Promise<ApiCategory[]> {
+  const result = await browserApi.GET('/api/admin/categories');
+  return unwrap<ApiCategory[]>(result, '/api/admin/categories');
 }
 
-export function createAdminCategory(data: CategoryInput): Promise<ApiCategory> {
-  return adminFetch('/api/admin/categories', { method: 'POST', body: JSON.stringify(data) });
+export async function createAdminCategory(data: CategoryInput): Promise<ApiCategory> {
+  const result = await browserApi.POST('/api/admin/categories', { body: data });
+  return unwrap<ApiCategory>(result, '/api/admin/categories');
 }
 
-export function updateAdminCategory(id: string, data: Partial<CategoryInput>): Promise<ApiCategory> {
-  return adminFetch(`/api/admin/categories/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) });
+export async function updateAdminCategory(id: string, data: Partial<CategoryInput>): Promise<ApiCategory> {
+  const result = await browserApi.PUT('/api/admin/categories/{id}', { params: { path: { id } }, body: data });
+  return unwrap<ApiCategory>(result, `/api/admin/categories/${id}`);
 }
 
-export function deleteAdminCategory(id: string): Promise<void> {
-  return adminFetch(`/api/admin/categories/${encodeURIComponent(id)}`, { method: 'DELETE' });
+export async function deleteAdminCategory(id: string): Promise<void> {
+  const result = await browserApi.DELETE('/api/admin/categories/{id}', { params: { path: { id } } });
+  unwrap<void>(result, `/api/admin/categories/${id}`);
 }
 
 // Orders
-export function getAdminOrders(status?: OrderStatus): Promise<AdminOrder[]> {
-  const query = status ? `?status=${encodeURIComponent(status)}` : '';
-  return adminFetch(`/api/admin/orders${query}`);
+export async function getAdminOrders(status?: OrderStatus): Promise<AdminOrder[]> {
+  const result = await browserApi.GET('/api/admin/orders', { params: { query: { status } } });
+  return unwrap<AdminOrder[]>(result, '/api/admin/orders');
 }
 
-export function updateAdminOrderStatus(id: string, status: AdminSettableOrderStatus): Promise<AdminOrder> {
-  return adminFetch(`/api/admin/orders/${encodeURIComponent(id)}/status`, {
-    method: 'PUT',
-    body: JSON.stringify({ status }),
+export async function updateAdminOrderStatus(id: string, status: AdminSettableOrderStatus): Promise<AdminOrder> {
+  const result = await browserApi.PUT('/api/admin/orders/{id}/status', {
+    params: { path: { id } },
+    body: { status },
   });
+  return unwrap<AdminOrder>(result, `/api/admin/orders/${id}/status`);
 }

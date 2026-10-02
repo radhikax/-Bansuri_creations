@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { AdminLayout } from './AdminLayout';
 import { createAdminQueryClient } from './lib/queryClient';
+import { routerMock } from '../test/next-mocks';
 import { server } from '../test/server';
 import { API_URL } from '../test/fixtures';
 
@@ -38,5 +39,15 @@ describe('AdminLayout', () => {
 
     await user.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(callCount).toBe(2));
+  });
+
+  it('logs out and navigates to the login page', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await screen.findByRole('heading', { name: 'Dashboard' });
+
+    await user.click(screen.getByRole('button', { name: 'Log out' }));
+
+    await waitFor(() => expect(routerMock.push).toHaveBeenCalledWith('/admin/login'));
   });
 });

@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getCategories, getProducts } from '@/lib/catalogue';
 import { absoluteUrl } from '@/lib/seo';
 
-// See app/page.tsx: caching lives in src/lib/catalogue.ts's fetch options, so
+// See app/(shop)/page.tsx: caching lives in src/lib/catalogue.ts's fetch options, so
 // this route stays dynamic and next build never calls the API to prerender it.
 export const dynamic = 'force-dynamic';
 

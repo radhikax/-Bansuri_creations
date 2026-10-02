@@ -4,7 +4,7 @@ import { getProductBySlug } from '@/lib/catalogue';
 import { ProductDetailPage } from '@/views/ProductDetailPage';
 import { absoluteUrl, jsonLdScript, productJsonLd, productPrice } from '@/lib/seo';
 
-// See app/page.tsx: caching lives in src/lib/catalogue.ts's fetch options, so
+// See app/(shop)/page.tsx: caching lives in src/lib/catalogue.ts's fetch options, so
 // this route stays dynamic and is never prerendered at build time.
 export const dynamic = 'force-dynamic';
 
