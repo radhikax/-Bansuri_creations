@@ -47,6 +47,8 @@ jobs:
         working-directory: server
       - run: npx prisma generate
         working-directory: server
+      - name: Check OpenAPI contract is in sync (schema + generated types)
+        run: node scripts/check-openapi-drift.mjs
       - name: Lint (web)
         run: npm run lint
       - name: Lint (API)
@@ -77,6 +79,12 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('app/**', 'src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
       - run: npm ci
       - run: npm test
       - run: npm run build
@@ -184,6 +192,9 @@ jobs:
           context: .
           load: true
           tags: bansuri-web:ci
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=http://localhost:8080
+            API_INTERNAL_URL=http://api:4000
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
       - name: Scan API image (fixable HIGH/CRITICAL fail)
@@ -217,6 +228,11 @@ jobs:
           test "$(curl -fsS http://localhost:8080/api/health)" = '{"status":"ok"}'
           curl -fsS http://localhost:8080/api/categories | grep -q '^\['
           curl -fsS -o /dev/null http://localhost:8080/admin/settings
+          curl -fsSI http://localhost:8080/ | grep -qi '^x-content-type-options: nosniff'
+          curl -fsS -X POST http://localhost:8080/internal/revalidate \
+            -H 'content-type: application/json' \
+            -H 'x-revalidate-secret: ci-dummy-revalidate-secret' \
+            -d '{"tags":["catalogue"]}' | grep -q revalidated
           echo "Smoke test passed"
       - name: Stack logs on failure
         if: failure()
@@ -291,4 +307,7 @@ jobs:
           push: true
           tags: ${{ steps.meta-web.outputs.tags }}
           labels: ${{ steps.meta-web.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=http://localhost:8080
+            API_INTERNAL_URL=http://api:4000
           cache-from: type=gha,scope=web

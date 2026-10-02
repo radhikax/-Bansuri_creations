@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll, afterEach, vi } from 'vitest';
 import { prisma } from '../src/db';
 import { seedDatabase } from '../prisma/seed';
 
@@ -39,5 +39,35 @@ describe('seedDatabase', () => {
 
   afterAll(async () => {
     await prisma.$disconnect();
+  });
+
+  describe('in production', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('refuses to seed when SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are unset', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('SEED_ADMIN_EMAIL', '');
+      vi.stubEnv('SEED_ADMIN_PASSWORD', '');
+
+      await expect(seedDatabase(prisma)).rejects.toThrow(/SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD/);
+      expect(await prisma.category.count()).toBe(0);
+      expect(await prisma.adminUser.count()).toBe(0);
+    });
+
+    it('seeds normally when both admin credentials are set', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('SEED_ADMIN_EMAIL', 'owner@bansuricreations.com');
+      vi.stubEnv('SEED_ADMIN_PASSWORD', 'a-long-unique-password');
+
+      await seedDatabase(prisma);
+
+      expect(await prisma.adminUser.count()).toBe(1);
+      const admin = await prisma.adminUser.findUniqueOrThrow({
+        where: { email: 'owner@bansuricreations.com' },
+      });
+      expect(admin.email).toBe('owner@bansuricreations.com');
+    });
   });
 });

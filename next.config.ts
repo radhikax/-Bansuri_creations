@@ -9,6 +9,19 @@ const config: NextConfig = {
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${apiInternal}/api/:path*` }];
   },
+  // nginx previously set these security headers; keep them now that Next.js serves
+  // the app directly. compress: true (the default) still provides gzip, and
+  // /_next/static/* is already served immutable by Next.js.
+  async headers() {
+    return [{
+      source: '/:path*',
+      headers: [
+        { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+      ],
+    }];
+  },
 };
 
 export default config;

@@ -46,6 +46,12 @@ const productsData: ProductSeed[] = [
 ];
 
 export async function seedDatabase(prisma: PrismaClient): Promise<void> {
+  if (process.env.NODE_ENV === 'production' && (!process.env.SEED_ADMIN_EMAIL || !process.env.SEED_ADMIN_PASSWORD)) {
+    throw new Error(
+      'SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must both be set when NODE_ENV=production; refusing to seed the public default admin credentials.',
+    );
+  }
+
   for (const cat of categoriesData) {
     await prisma.category.upsert({ where: { slug: cat.slug }, update: {}, create: cat });
   }
