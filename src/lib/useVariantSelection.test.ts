@@ -50,10 +50,12 @@ describe('useVariantSelection', () => {
   });
 
   describe('buildCartItem', () => {
-    it('returns the product unchanged when there is a single variant', () => {
+    it('keeps the product id but attaches the real variant id when there is a single variant', () => {
       const product = makeProduct({ variants: [sizeVariants[0]] });
       const { result } = renderHook(() => useVariantSelection(product));
-      expect(result.current.buildCartItem()).toBe(product);
+      const item = result.current.buildCartItem();
+      expect(item.id).toBe(product.id);
+      expect(item.variantId).toBe('v-s');
     });
 
     it('returns a variant-specific cart item for multi-variant products', () => {
@@ -65,6 +67,7 @@ describe('useVariantSelection', () => {
         name: 'Brass Diya (Large)',
         price: 700,
         inStock: true,
+        variantId: 'v-l',
       });
     });
 
@@ -78,6 +81,7 @@ describe('useVariantSelection', () => {
       const { result } = renderHook(() => useVariantSelection(product));
       expect(result.current.buildCartItem().name).toBe('Brass Diya');
       expect(result.current.buildCartItem().id).toBe('prod-1::a');
+      expect(result.current.buildCartItem().variantId).toBe('a');
     });
   });
 });

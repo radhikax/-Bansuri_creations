@@ -14,14 +14,21 @@ export function useVariantSelection(product: Product) {
     ? Math.round(((product.originalPrice! - price) / product.originalPrice!) * 100)
     : 0;
 
-  function buildCartItem(): Product {
-    if (!hasMultipleVariants || !selectedVariant) return product;
+  function buildCartItem(): Product & { variantId: string } {
+    // No variant at all (shouldn't happen once the catalogue always has a
+    // "Default" variant, but stay defensive): fall back to the product id.
+    if (!selectedVariant) return { ...product, variantId: product.id };
+    // Single variant: keep the product's own id (cart-line identity is
+    // unchanged) but carry the real variant id explicitly so checkout sends
+    // the id the order API actually looks items up by.
+    if (!hasMultipleVariants) return { ...product, variantId: selectedVariant.id };
     return {
       ...product,
       id: `${product.id}::${selectedVariant.id}`,
       name: selectedVariant.label === 'Default' ? product.name : `${product.name} (${selectedVariant.label})`,
       price: selectedVariant.price,
       inStock: selectedVariant.stock > 0,
+      variantId: selectedVariant.id,
     };
   }
 

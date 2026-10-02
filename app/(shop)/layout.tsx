@@ -9,7 +9,16 @@ import { getCategories } from '@/lib/catalogue';
 export const dynamic = 'force-dynamic';
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
-  const categories = await getCategories();
+  // An error.tsx boundary never catches errors thrown by the layout.tsx of
+  // its own segment, so a failing categories fetch here would otherwise
+  // bypass (shop)/error.tsx entirely and hit Next's unbranded default error
+  // page. Degrade instead: render with no category links, and let each
+  // page's own fetch (which does throw into the boundary) show the branded
+  // Retry UI for the part of the page that actually needs the API.
+  const categories = await getCategories().catch((error: unknown) => {
+    console.error('Failed to load categories for the shop layout', error);
+    return [];
+  });
 
   return (
     <CartProvider>

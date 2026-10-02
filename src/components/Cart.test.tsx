@@ -8,7 +8,7 @@ import { CartProvider, useCart, type CartItem } from './cart/CartProvider';
 import { server } from '../test/server';
 import { API_URL, makeProduct } from '../test/fixtures';
 
-const STORAGE_KEY = 'bansuri-cart-v1';
+const STORAGE_KEY = 'bansuri-cart-v2';
 
 const diya: CartItem = { ...makeProduct(), quantity: 2, variantId: 'prod-1' }; // 2 x 500
 const poshak: CartItem = {
@@ -41,7 +41,7 @@ function CartCountProbe() {
 
 function renderCart(items: CartItem[] = [], { opened = true } = {}) {
   if (items.length > 0) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: 1, items }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: 2, items }));
   }
   render(
     <CartProvider>

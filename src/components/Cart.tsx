@@ -111,6 +111,7 @@ export function Cart() {
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8"
+                            aria-label={`Remove ${item.name}`}
                             onClick={() => remove(item.id)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />

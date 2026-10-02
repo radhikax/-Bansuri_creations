@@ -7,7 +7,7 @@ import { CART_ICON_ATTR } from '../lib/flyToCart';
 import type { AdaptedCategory } from '../lib/adapters';
 import { makeProduct } from '../test/fixtures';
 
-const STORAGE_KEY = 'bansuri-cart-v1';
+const STORAGE_KEY = 'bansuri-cart-v2';
 
 const categories: AdaptedCategory[] = [
   { title: 'Diwali Decor', description: '', image: '', icon: '', slug: 'diwali-decor' },
@@ -21,7 +21,7 @@ function CartOpenProbe() {
 }
 
 function seedCart(items: CartItem[]) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: 1, items }));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: 2, items }));
 }
 
 function renderHeader(cats: AdaptedCategory[] = categories) {

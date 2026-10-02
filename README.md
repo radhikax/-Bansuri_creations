@@ -61,10 +61,12 @@
   1. `cp .env.production.example .env.production` and fill it in (never commit it).
      This includes `REVALIDATE_SECRET` (shared between `api` and `web`, so the API
      can tell the web container to refresh a page after an edit), `WEB_INTERNAL_URL`
-     (`http://web:8080`, how the API reaches the web container), and
-     `NEXT_PUBLIC_SITE_URL` (the public shop URL — baked into the client bundle at
-     *build* time, so it must also be passed as a `docker compose build` arg when you
-     build locally, not just set in the env file).
+     (`http://web:8080`, how the API reaches the web container), and `SITE_URL`
+     (the public shop URL). `SITE_URL` is read at runtime, not baked into the
+     image, so setting it in the env file is enough — it takes effect on the
+     published GHCR image with no rebuild. `NEXT_PUBLIC_SITE_URL` is only a
+     build-time fallback for a local `docker compose build`; when both are set,
+     `SITE_URL` always wins at runtime.
   2. `docker compose -f docker-compose.prod.yml up -d` pulls the published images
      (add `--build` to build locally). The `migrate` service applies migrations
      before `api` starts; the shop is on http://localhost:8080.

@@ -7,14 +7,19 @@ import { absoluteUrl, SITE_DESCRIPTION, SITE_NAME } from '@/lib/seo';
 const heading = Cormorant_Garamond({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-heading' });
 const body = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-body' });
 
-export const metadata: Metadata = {
-  // One source of truth for NEXT_PUBLIC_SITE_URL and its local fallback:
-  // src/lib/seo.ts's absoluteUrl, so this never disagrees with the
-  // canonical/OG URLs the page-level generateMetadata functions build.
-  metadataBase: new URL(absoluteUrl('/')),
-  title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
-  description: SITE_DESCRIPTION,
-};
+// A static `metadata` export would be evaluated once, at build/module-load
+// time, baking in whatever SITE_URL happened to be set then — the exact bug
+// this function avoids. `generateMetadata` instead runs per request, so
+// metadataBase always reflects the runtime SITE_URL (see src/lib/seo.ts's
+// absoluteUrl, the one source of truth it shares with every page-level
+// generateMetadata function for canonical/OG URLs).
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    metadataBase: new URL(absoluteUrl('/')),
+    title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
+    description: SITE_DESCRIPTION,
+  };
+}
 
 // The storefront chrome (Header/Footer/Cart) and the categories fetch that
 // feeds them live in app/(shop)/layout.tsx instead — this root layout wraps

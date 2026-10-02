@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { CartProvider, useCart } from './CartProvider';
 import { makeProduct } from '../../test/fixtures';
 
-const STORAGE_KEY = 'bansuri-cart-v1';
+const STORAGE_KEY = 'bansuri-cart-v2';
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -21,15 +21,19 @@ describe('CartProvider', () => {
     expect(result.current.items[0].quantity).toBe(2);
   });
 
-  it('takes variantId from the item id', () => {
+  it('falls back to parsing variantId from the item id when none is given', () => {
     const { result } = renderHook(() => useCart(), { wrapper: CartProvider });
 
     act(() => result.current.add(makeProduct({ id: 'prod-1::var-2' })));
     expect(result.current.items[0].variantId).toBe('var-2');
+  });
 
-    act(() => result.current.add(makeProduct({ id: 'prod-3' })));
+  it('prefers an explicit variantId over the item id, so a single-variant product keeps its real variant id', () => {
+    const { result } = renderHook(() => useCart(), { wrapper: CartProvider });
+
+    act(() => result.current.add({ ...makeProduct({ id: 'prod-3' }), variantId: 'real-variant-id' }));
     const singleVariant = result.current.items.find((i) => i.id === 'prod-3')!;
-    expect(singleVariant.variantId).toBe('prod-3');
+    expect(singleVariant.variantId).toBe('real-variant-id');
   });
 
   it('counts the sum of quantities, not the number of line items', () => {

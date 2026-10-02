@@ -8,11 +8,20 @@ export const SITE_DESCRIPTION = 'Handmade traditional decor, wedding packing and
 const DEFAULT_SITE_URL = 'http://localhost:5173';
 
 /**
- * Resolves `path` to an absolute URL under NEXT_PUBLIC_SITE_URL. Strips a
- * trailing slash from the base first so the result never contains `//`.
+ * Resolves `path` to an absolute URL. Every caller of this module is
+ * server-only (route handlers, metadata, JSON-LD), so it reads a runtime,
+ * non-public `SITE_URL` first — unlike `NEXT_PUBLIC_*`, that is never
+ * inlined into a built bundle, so it can be set per-deployment on an image
+ * that was already built. `NEXT_PUBLIC_SITE_URL` is kept only as a
+ * build-time fallback for checkouts that still set it, and the localhost
+ * default covers an unconfigured local checkout. Read at call time (inside
+ * this function), not into a module-level constant, so a value set after
+ * the module first loads (e.g. per-request in a long-lived server process)
+ * is always picked up. Strips a trailing slash from the base first so the
+ * result never contains `//`.
  */
 export function absoluteUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL).replace(/\/+$/, '');
+  const base = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL).replace(/\/+$/, '');
   const suffix = path.startsWith('/') ? path : `/${path}`;
   return `${base}${suffix}`;
 }

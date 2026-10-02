@@ -2,30 +2,42 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { makeApiProduct, makeApiVariant } from '../test/fixtures';
 import { absoluteUrl, jsonLdScript, productInStock, productJsonLd, productPrice } from './seo';
 
-const ORIGINAL_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
+const ORIGINAL_SITE_URL = process.env.SITE_URL;
+const ORIGINAL_NEXT_PUBLIC_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
 
 afterEach(() => {
-  process.env.NEXT_PUBLIC_SITE_URL = ORIGINAL_SITE_URL;
+  process.env.SITE_URL = ORIGINAL_SITE_URL;
+  process.env.NEXT_PUBLIC_SITE_URL = ORIGINAL_NEXT_PUBLIC_SITE_URL;
 });
 
 describe('absoluteUrl', () => {
-  it('falls back to the local dev origin when NEXT_PUBLIC_SITE_URL is unset', () => {
+  it('falls back to the local dev origin when neither SITE_URL nor NEXT_PUBLIC_SITE_URL is set', () => {
+    delete process.env.SITE_URL;
     delete process.env.NEXT_PUBLIC_SITE_URL;
     expect(absoluteUrl('/product/brass-diya')).toBe('http://localhost:5173/product/brass-diya');
   });
 
-  it('uses NEXT_PUBLIC_SITE_URL when set', () => {
+  it('uses NEXT_PUBLIC_SITE_URL when SITE_URL is unset', () => {
+    delete process.env.SITE_URL;
     process.env.NEXT_PUBLIC_SITE_URL = 'https://bansuricreations.example';
     expect(absoluteUrl('/category/diwali-decor')).toBe('https://bansuricreations.example/category/diwali-decor');
   });
 
+  it('prefers the runtime SITE_URL over the build-time NEXT_PUBLIC_SITE_URL fallback', () => {
+    process.env.SITE_URL = 'https://runtime.example';
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://baked-at-build.example';
+    expect(absoluteUrl('/category/diwali-decor')).toBe('https://runtime.example/category/diwali-decor');
+  });
+
   it('strips a trailing slash from the base so the result never contains //', () => {
-    process.env.NEXT_PUBLIC_SITE_URL = 'https://bansuricreations.example/';
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+    process.env.SITE_URL = 'https://bansuricreations.example/';
     expect(absoluteUrl('/')).toBe('https://bansuricreations.example/');
   });
 
   it('adds a leading slash to a path that is missing one', () => {
-    process.env.NEXT_PUBLIC_SITE_URL = 'https://bansuricreations.example';
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+    process.env.SITE_URL = 'https://bansuricreations.example';
     expect(absoluteUrl('sitemap.xml')).toBe('https://bansuricreations.example/sitemap.xml');
   });
 });

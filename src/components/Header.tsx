@@ -70,7 +70,7 @@ export function Header({ categories }: HeaderProps) {
           </nav>
 
           {/* Cart Button */}
-          <Button variant="outline" className="relative" onClick={open} {...{ [CART_ICON_ATTR]: true }}>
+          <Button variant="outline" className="relative" onClick={open} aria-label="Open cart" {...{ [CART_ICON_ATTR]: true }}>
             <ShoppingCart className="h-5 w-5" />
             {count > 0 && (
               <motion.div
