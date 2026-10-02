@@ -4,7 +4,12 @@ import { Product } from '../types';
 export function useVariantSelection(product: Product) {
   const variants = product.variants ?? [];
   const hasMultipleVariants = variants.length > 1;
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  // Until the shopper picks a size, default to the first one in stock —
+  // derived every render, so it also moves off a variant that live stock
+  // later reports sold out. An explicit pick always wins.
+  const [pickedIndex, setSelectedIndex] = useState<number | null>(null);
+  const firstInStock = variants.findIndex((v) => v.stock > 0);
+  const selectedIndex = pickedIndex ?? Math.max(firstInStock, 0);
 
   const selectedVariant = variants[selectedIndex];
   const price = selectedVariant?.price ?? product.price;

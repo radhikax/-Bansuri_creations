@@ -17,11 +17,16 @@ const DEFAULT_SITE_URL = 'http://localhost:5173';
  * default covers an unconfigured local checkout. Read at call time (inside
  * this function), not into a module-level constant, so a value set after
  * the module first loads (e.g. per-request in a long-lived server process)
- * is always picked up. Strips a trailing slash from the base first so the
- * result never contains `//`.
+ * is always picked up. A blank value (e.g. `SITE_URL=` left empty in an env
+ * file) counts as unset — otherwise the base would be '' and `new URL()` in
+ * the root layout would throw on every request. Strips a trailing slash from
+ * the base first so the result never contains `//`.
  */
 export function absoluteUrl(path: string): string {
-  const base = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL).replace(/\/+$/, '');
+  const configured = [process.env.SITE_URL, process.env.NEXT_PUBLIC_SITE_URL]
+    .map((value) => value?.trim())
+    .find((value) => value);
+  const base = (configured ?? DEFAULT_SITE_URL).replace(/\/+$/, '');
   const suffix = path.startsWith('/') ? path : `/${path}`;
   return `${base}${suffix}`;
 }

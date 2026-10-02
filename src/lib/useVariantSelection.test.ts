@@ -18,6 +18,41 @@ describe('useVariantSelection', () => {
     expect(result.current.price).toBe(400);
   });
 
+  it('defaults to the first in-stock variant when the first one is sold out', () => {
+    const variants = [{ ...sizeVariants[0], stock: 0 }, sizeVariants[1], sizeVariants[2]];
+    const { result } = renderHook(() => useVariantSelection(makeProduct({ variants })));
+    expect(result.current.selectedIndex).toBe(1);
+    expect(result.current.inStock).toBe(true);
+    expect(result.current.buildCartItem().variantId).toBe('v-l');
+  });
+
+  it('stays on the first variant when every variant is sold out', () => {
+    const variants = sizeVariants.map((v) => ({ ...v, stock: 0 }));
+    const { result } = renderHook(() => useVariantSelection(makeProduct({ variants })));
+    expect(result.current.selectedIndex).toBe(0);
+    expect(result.current.inStock).toBe(false);
+  });
+
+  it('moves off the default variant when live stock reports it sold out', () => {
+    const { result, rerender } = renderHook(({ product }) => useVariantSelection(product), {
+      initialProps: { product: makeProduct({ variants: sizeVariants }) },
+    });
+    expect(result.current.selectedIndex).toBe(0);
+    rerender({ product: makeProduct({ variants: [{ ...sizeVariants[0], stock: 0 }, sizeVariants[1], sizeVariants[2]] }) });
+    expect(result.current.selectedIndex).toBe(1);
+    expect(result.current.inStock).toBe(true);
+  });
+
+  it('keeps an explicit pick even when stock changes', () => {
+    const { result, rerender } = renderHook(({ product }) => useVariantSelection(product), {
+      initialProps: { product: makeProduct({ variants: sizeVariants }) },
+    });
+    act(() => result.current.setSelectedIndex(0));
+    rerender({ product: makeProduct({ variants: [{ ...sizeVariants[0], stock: 0 }, sizeVariants[1], sizeVariants[2]] }) });
+    expect(result.current.selectedIndex).toBe(0);
+    expect(result.current.inStock).toBe(false);
+  });
+
   it('updates price and stock when another variant is selected', () => {
     const { result } = renderHook(() => useVariantSelection(makeProduct({ variants: sizeVariants })));
     act(() => result.current.setSelectedIndex(2));

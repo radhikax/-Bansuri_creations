@@ -16,18 +16,24 @@ export function Cart() {
   const { items, setQuantity, remove, clear, isOpen, open, close } = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [shippingSettings, setShippingSettings] = useState<ShippingSettings | null>(null);
-  const fetchedShipping = useRef(false);
+  const shippingRequestInFlight = useRef(false);
 
+  // Refetch on every open so a failed request is retried and an admin's
+  // shipping change is picked up without a reload; the last good settings
+  // stay on screen meanwhile.
   useEffect(() => {
-    if (!isOpen || fetchedShipping.current) return;
-    fetchedShipping.current = true;
+    if (!isOpen || shippingRequestInFlight.current) return;
+    shippingRequestInFlight.current = true;
     browserApi
       .GET('/api/settings/shipping')
       .then(({ data }) => {
         if (data) setShippingSettings(data);
       })
       .catch(() => {
-        // Network failure: shippingLabel below falls back to "Calculated at checkout".
+        // Network failure: keep the last good settings, or "Calculated at checkout" if none yet.
+      })
+      .finally(() => {
+        shippingRequestInFlight.current = false;
       });
   }, [isOpen]);
 

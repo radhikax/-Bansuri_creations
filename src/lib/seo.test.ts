@@ -40,6 +40,19 @@ describe('absoluteUrl', () => {
     process.env.SITE_URL = 'https://bansuricreations.example';
     expect(absoluteUrl('sitemap.xml')).toBe('https://bansuricreations.example/sitemap.xml');
   });
+
+  it('treats a blank SITE_URL as unset and falls back to NEXT_PUBLIC_SITE_URL', () => {
+    process.env.SITE_URL = '';
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://bansuricreations.example';
+    expect(absoluteUrl('/')).toBe('https://bansuricreations.example/');
+    expect(() => new URL(absoluteUrl('/'))).not.toThrow();
+  });
+
+  it('falls back to the local dev origin when both settings are blank or whitespace', () => {
+    process.env.SITE_URL = '  ';
+    process.env.NEXT_PUBLIC_SITE_URL = '';
+    expect(absoluteUrl('/')).toBe('http://localhost:5173/');
+  });
 });
 
 describe('productPrice', () => {

@@ -33,6 +33,12 @@ function AutoOpen() {
   return null;
 }
 
+/** Opens the cart on click, standing in for Header's cart button. */
+function OpenButton() {
+  const { open } = useCart();
+  return <button onClick={open}>test-open</button>;
+}
+
 /** Exposes the live item count, the way Header's badge would, so tests can assert on it directly. */
 function CartCountProbe() {
   const { count } = useCart();
@@ -149,6 +155,27 @@ describe('Cart', () => {
     await screen.findByText('Shopping Cart (2)');
     await waitFor(() => expect(screen.getByText('Calculated at checkout')).toBeInTheDocument());
     expect(screen.getAllByText('₹1800')).toHaveLength(2);
+  });
+
+  it('retries loading shipping settings when the cart is reopened after a failure', async () => {
+    server.use(http.get(`${API_URL}/api/settings/shipping`, () => HttpResponse.error()));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: 2, items: [diya] }));
+    render(
+      <CartProvider>
+        <OpenButton />
+        <Cart />
+      </CartProvider>,
+    );
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'test-open' }));
+    await waitFor(() => expect(screen.getByText('Calculated at checkout')).toBeInTheDocument());
+
+    mockShipping(testShipping);
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByText(/shopping cart/i)).not.toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'test-open' }));
+    await waitFor(() => expect(screen.getByText('₹50')).toBeInTheDocument());
   });
 
   describe('checkout flow', () => {
