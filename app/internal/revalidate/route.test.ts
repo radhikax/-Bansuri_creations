@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 const revalidateTag = vi.fn();
-vi.mock('next/cache', () => ({ revalidateTag: (t: string, p?: string) => revalidateTag(t, p) }));
+vi.mock('next/cache', () => ({ revalidateTag: (t: string, p?: unknown) => revalidateTag(t, p) }));
 import { POST } from './route';
 
 const req = (body: unknown, secret?: string) =>
@@ -33,5 +33,6 @@ describe('POST /internal/revalidate', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ revalidated: ['catalogue', 'product:brass-diya'] });
     expect(revalidateTag).toHaveBeenCalledTimes(2);
+    expect(revalidateTag).toHaveBeenCalledWith('product:brass-diya', { expire: 0 });
   });
 });

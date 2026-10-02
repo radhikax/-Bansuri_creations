@@ -14,6 +14,9 @@ export async function POST(request: Request) {
   if (!Array.isArray(tags) || tags.length === 0 || !tags.every((t) => typeof t === 'string' && t.length <= 128)) {
     return Response.json({ error: 'Body must be { tags: string[] }' }, { status: 400 });
   }
-  for (const tag of tags) revalidateTag(tag, 'max');
+  // { expire: 0 }: the next visitor gets fresh data, never a stale page. 'max'
+  // (stale-while-revalidate) would show the pre-edit page once more. This is
+  // the documented choice for webhooks / other services calling a Route Handler.
+  for (const tag of tags) revalidateTag(tag, { expire: 0 });
   return Response.json({ revalidated: tags });
 }
