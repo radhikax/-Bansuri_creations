@@ -1,11 +1,9 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Inter } from 'next/font/google';
 import '../src/styles/index.css';
 import { Toaster } from '@/components/ui/sonner';
 import { absoluteUrl, SITE_DESCRIPTION, SITE_NAME } from '@/lib/seo';
+import { fontVariables } from './fonts';
 
-const heading = Cormorant_Garamond({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-heading' });
-const body = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-body' });
 
 // A static `metadata` export would be evaluated once, at build/module-load
 // time, baking in whatever SITE_URL happened to be set then — the exact bug
@@ -26,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // every route, including /admin, which must not depend on the catalogue API.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${heading.variable} ${body.variable}`}>
+    <html lang="en" className={fontVariables}>
       <body>
         {children}
         <Toaster />

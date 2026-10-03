@@ -20,3 +20,12 @@ vi.mock('next/image', () => ({
       ...rest,
     }),
 }));
+// next/font only works under the Next compiler; each loader returns its CSS variable name as a class.
+vi.mock('next/font/google', () => {
+  const loader = (opts: { variable?: string }) => ({
+    className: '',
+    variable: `${(opts.variable ?? '').replace(/^--/, '')}-var`,
+    style: {},
+  });
+  return { Cormorant_Garamond: loader, Inter: loader };
+});
