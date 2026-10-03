@@ -74,8 +74,8 @@
      sets `SITE_URL` (the public shop URL). `SITE_URL` is read at runtime, not
      baked into the image, so setting it in `.env.web` is enough — it takes effect
      on the published GHCR image with no rebuild. `NEXT_PUBLIC_SITE_URL` is only a
-     build-time fallback for a local `docker compose build`; when both are set,
-     `SITE_URL` always wins at runtime.
+     build-time fallback, read from your shell by a local `docker compose build`
+     (a value in `.env.web` is ignored); `SITE_URL` always wins at runtime.
 
      Upgrading from a single `.env.production`: move the `--- Web ---` lines into
      `.env.web`, copy `REVALIDATE_SECRET` into it, and rename the rest to
