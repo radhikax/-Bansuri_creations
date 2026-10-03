@@ -14,3 +14,7 @@ export const SEED_ADMIN_PASSWORD = 'changeme123';
 export const CHANGED_ADMIN_PASSWORD = 'e2e-new-password-1';
 
 export const API_ORIGIN = 'http://localhost:4000';
+
+// Shared by both webServers in playwright.config.ts and by seo.spec.ts, which
+// calls POST /internal/revalidate itself.
+export const E2E_REVALIDATE_SECRET = 'e2e-revalidate-secret';

@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { E2E_DATABASE_URL } from './e2e/env';
+import { E2E_DATABASE_URL, E2E_REVALIDATE_SECRET } from './e2e/env';
 
 export default defineConfig({
   testDir: './e2e',
@@ -20,7 +20,7 @@ export default defineConfig({
       cwd: 'server',
       url: 'http://localhost:4000/api/health',
       reuseExistingServer: false,
-      env: { DATABASE_URL: E2E_DATABASE_URL, WEB_INTERNAL_URL: 'http://localhost:5173', REVALIDATE_SECRET: 'e2e-revalidate-secret' },
+      env: { DATABASE_URL: E2E_DATABASE_URL, WEB_INTERNAL_URL: 'http://localhost:5173', REVALIDATE_SECRET: E2E_REVALIDATE_SECRET },
       timeout: 60_000,
     },
     {
@@ -34,7 +34,7 @@ export default defineConfig({
       // so '/' would answer 500 until then and the wait would time out.
       url: 'http://localhost:5173/robots.txt',
       reuseExistingServer: false,
-      env: { API_INTERNAL_URL: 'http://localhost:4000', REVALIDATE_SECRET: 'e2e-revalidate-secret' },
+      env: { API_INTERNAL_URL: 'http://localhost:4000', REVALIDATE_SECRET: E2E_REVALIDATE_SECRET },
       timeout: 240_000,
     },
   ],

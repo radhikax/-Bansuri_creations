@@ -1,5 +1,14 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
-import { API_ORIGIN, CHANGED_ADMIN_PASSWORD, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD } from './env';
+import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import {
+  API_ORIGIN,
+  CHANGED_ADMIN_PASSWORD,
+  E2E_DATABASE_URL,
+  E2E_REVALIDATE_SECRET,
+  SEED_ADMIN_EMAIL,
+  SEED_ADMIN_PASSWORD,
+} from './env';
 
 interface ApiVariant { price: number | null }
 interface ApiProduct { id: string; name: string; slug: string; basePrice: number; variants: ApiVariant[] }
@@ -93,5 +102,45 @@ test('an admin product rename shows up on the product page within 10s', async ({
       data: { name: originalName },
     });
     expect(restoreRes.ok()).toBe(true);
+  }
+});
+
+/** Renames a product straight in the e2e database, so the API never triggers a revalidate. */
+function renameInDb(id: string, name: string) {
+  const quote = (v: string) => `'${v.replace(/'/g, "''")}'`;
+  execSync('npx prisma db execute --stdin', {
+    cwd: fileURLToPath(new URL('../server', import.meta.url)),
+    input: `UPDATE "Product" SET name = ${quote(name)} WHERE id = ${quote(id)};`,
+    env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL },
+  });
+}
+
+async function revalidateTags(request: APIRequestContext, tags: string[]) {
+  const res = await request.post('/internal/revalidate', {
+    headers: { 'x-revalidate-secret': E2E_REVALIDATE_SECRET },
+    data: { tags },
+  });
+  expect(res.ok()).toBe(true);
+}
+
+// The rename test above would also pass with fetch caching silently off. This
+// one proves the page is served from cache until its tag is revalidated.
+test('a product page stays cached until its tag is revalidated', async ({ request }) => {
+  const product = (await getProducts(request))[1];
+  const tag = `product:${product.slug}`;
+  const newName = `${product.name} (db edited)`;
+  const pageText = async () => (await request.get(`/product/${product.slug}`)).text();
+
+  expect(await pageText()).toContain(product.name); // warms the cache
+
+  try {
+    renameInDb(product.id, newName);
+    expect(await pageText()).not.toContain(newName);
+
+    await revalidateTags(request, [tag]);
+    expect(await pageText()).toContain(newName);
+  } finally {
+    renameInDb(product.id, product.name);
+    await revalidateTags(request, [tag]);
   }
 });
