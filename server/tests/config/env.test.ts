@@ -69,9 +69,22 @@ describe('validateEnv', () => {
 
   it('does not warn in production when WEB_INTERNAL_URL and REVALIDATE_SECRET are set', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    validateEnv({ ...prodBase, WEB_INTERNAL_URL: 'http://web:8080', REVALIDATE_SECRET: 's3cret' });
+    validateEnv({ ...prodBase, WEB_INTERNAL_URL: 'http://web:8080', REVALIDATE_SECRET: 'r'.repeat(32) });
     expect(warnSpy).not.toHaveBeenCalled();
     warnSpy.mockRestore();
+  });
+
+  it('rejects a production REVALIDATE_SECRET shorter than 32 characters', () => {
+    const problems = problemsOf({ ...prodBase, REVALIDATE_SECRET: 'short' });
+    expect(problems.some((p) => p.startsWith('REVALIDATE_SECRET'))).toBe(true);
+  });
+
+  it('accepts an empty production REVALIDATE_SECRET as unset', () => {
+    expect(problemsOf({ ...prodBase, REVALIDATE_SECRET: '' })).toEqual([]);
+  });
+
+  it('accepts a short REVALIDATE_SECRET outside production', () => {
+    expect(problemsOf({ ...devBase, REVALIDATE_SECRET: 'dev' })).toEqual([]);
   });
 
   it('accepts an empty-string WEB_INTERNAL_URL as unset, without failing validation', () => {

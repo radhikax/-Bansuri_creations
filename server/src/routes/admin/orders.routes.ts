@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../../db';
 import { requireAdminAuth } from '../../middleware/adminAuth';
 import { asyncHandler } from '../../middleware/asyncHandler';
+import { revalidate } from '../../services/revalidate';
 
 export const adminOrdersRouter = Router();
 adminOrdersRouter.use(requireAdminAuth);
@@ -35,7 +36,10 @@ adminOrdersRouter.put('/:id/status', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid status payload', details: parsed.error.flatten() });
   }
 
-  const order = await prisma.order.findUnique({ where: { id: req.params.id }, include: { items: true } });
+  const order = await prisma.order.findUnique({
+    where: { id: req.params.id },
+    include: { items: { include: { productVariant: { select: { product: { select: { slug: true } } } } } } },
+  });
   if (!order) {
     return res.status(404).json({ error: 'Order not found' });
   }
@@ -43,25 +47,31 @@ adminOrdersRouter.put('/:id/status', asyncHandler(async (req, res) => {
   const shouldRestock =
     parsed.data.status === 'CANCELLED' && restockableStatuses.includes(order.status);
 
-  await prisma.$transaction(async (tx) => {
+  const restocked = await prisma.$transaction(async (tx) => {
     // Compare-and-swap on the exact status we read, so a concurrent writer
     // (e.g. the webhook confirming payment) cannot be clobbered.
     const claimed = await tx.order.updateMany({
       where: { id: order.id, status: order.status },
       data: { status: parsed.data.status },
     });
-    if (claimed.count === 0) {
-      return;
+    if (claimed.count === 0 || !shouldRestock) {
+      return false;
     }
-    if (shouldRestock) {
-      for (const item of order.items) {
-        await tx.productVariant.update({
-          where: { id: item.productVariantId },
-          data: { stock: { increment: item.quantity } },
-        });
-      }
+    for (const item of order.items) {
+      await tx.productVariant.update({
+        where: { id: item.productVariantId },
+        data: { stock: { increment: item.quantity } },
+      });
     }
+    return true;
   });
+
+  if (restocked) {
+    // Same tags as the webhook's sale: cached product pages and cards would
+    // otherwise keep showing the restocked item as sold out for up to 5 minutes.
+    const productSlugs = new Set(order.items.map((item) => item.productVariant.product.slug));
+    revalidate(['product-list', ...Array.from(productSlugs, (slug) => `product:${slug}`)]);
+  }
 
   const updated = await prisma.order.findUniqueOrThrow({ where: { id: order.id }, include: { items: true } });
   res.json(updated);

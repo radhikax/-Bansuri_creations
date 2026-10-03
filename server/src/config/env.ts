@@ -26,6 +26,10 @@ const productionSchema = baseSchema.extend({
   RAZORPAY_KEY_ID: nonEmpty,
   RAZORPAY_KEY_SECRET: nonEmpty,
   RAZORPAY_WEBHOOK_SECRET: nonEmpty,
+  // Optional (instant refresh can be off), but never guessable when set.
+  REVALIDATE_SECRET: z
+    .union([z.literal(''), z.string().min(32, 'must be at least 32 characters in production')])
+    .optional(),
 });
 
 /**

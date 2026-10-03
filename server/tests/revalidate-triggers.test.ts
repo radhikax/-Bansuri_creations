@@ -307,4 +307,70 @@ describe('revalidate triggers', () => {
       expect(revalidateMock).not.toHaveBeenCalled();
     });
   });
+
+  describe('order cancellation', () => {
+    async function createOrder(status: 'PENDING' | 'PAID') {
+      const variant = await prisma.productVariant.findFirstOrThrow({ where: { sku: 'DSD-001' }, include: { product: true } });
+      const order = await prisma.order.create({
+        data: {
+          orderNumber: `ORD-CANCEL-${status}`,
+          status,
+          customerName: 'Test Customer',
+          customerPhone: '9999999999',
+          customerEmail: 'customer@example.com',
+          addressStreet: 'x',
+          addressCity: 'x',
+          addressState: 'x',
+          addressPincode: 'x',
+          subtotal: 998,
+          shippingFee: 50,
+          total: 1048,
+          items: {
+            create: [{
+              productVariantId: variant.id,
+              productNameSnapshot: variant.product.name,
+              variantLabelSnapshot: 'Default',
+              unitPrice: 499,
+              quantity: 2,
+            }],
+          },
+        },
+      });
+      return { order, slug: variant.product.slug };
+    }
+
+    it('revalidates the product list and each restocked product when a paid order is cancelled', async () => {
+      const { order, slug } = await createOrder('PAID');
+      const agent = request.agent(app);
+      await loginAsAdmin(agent);
+
+      const res = await agent.put(`/api/admin/orders/${order.id}/status`).send({ status: 'CANCELLED' });
+
+      expect(res.status).toBe(200);
+      expect(revalidateMock).toHaveBeenCalledTimes(1);
+      expect(revalidateMock).toHaveBeenCalledWith(['product-list', `product:${slug}`]);
+    });
+
+    it('does not revalidate when cancelling an order that never took stock', async () => {
+      const { order } = await createOrder('PENDING');
+      const agent = request.agent(app);
+      await loginAsAdmin(agent);
+
+      const res = await agent.put(`/api/admin/orders/${order.id}/status`).send({ status: 'CANCELLED' });
+
+      expect(res.status).toBe(200);
+      expect(revalidateMock).not.toHaveBeenCalled();
+    });
+
+    it('does not revalidate on a status change that is not a cancellation', async () => {
+      const { order } = await createOrder('PAID');
+      const agent = request.agent(app);
+      await loginAsAdmin(agent);
+
+      const res = await agent.put(`/api/admin/orders/${order.id}/status`).send({ status: 'SHIPPED' });
+
+      expect(res.status).toBe(200);
+      expect(revalidateMock).not.toHaveBeenCalled();
+    });
+  });
 });
