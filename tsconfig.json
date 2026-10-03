@@ -15,7 +15,6 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "types": [
-      "vite/client",
       "vitest/globals",
       "@testing-library/jest-dom",
       "node"

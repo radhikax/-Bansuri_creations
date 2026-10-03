@@ -32,31 +32,23 @@ Browser smoke tests live at the repo root (`npm run e2e`) and use their own
    - Environment variables: same keys as `.env.example`, with real production
      values (`DATABASE_URL` from Neon/Supabase, live Razorpay keys, Resend key,
      `NODE_ENV=production`). `FRONTEND_ORIGIN` is only needed if the frontend
-     calls the API cross-origin via `VITE_API_BASE_URL`; the default
+     calls the API cross-origin via `NEXT_PUBLIC_API_BASE_URL`; the default
      same-origin setup below doesn't need it.
-3. Serve the frontend and the API from **one origin**: configure the frontend
-   host to forward `/api/*` to this API, so the admin session cookie stays
-   first-party. Examples (replace `<api-host>`); the SPA fallback must come
-   after the `/api` rule so client routes like `/admin`, `/admin/login` and
-   `/category/<slug>` don't 404 on a direct load or reload:
-   - Vercel `vercel.json`:
-     `{ "rewrites": [ { "source": "/api/:path*", "destination": "https://<api-host>/api/:path*" }, { "source": "/(.*)", "destination": "/index.html" } ] }`
-   - Netlify `_redirects` (order matters, `/api` first):
-     ```
-     /api/*  https://<api-host>/api/:splat  200
-     /*      /index.html                    200
-     ```
-   Leave `VITE_API_BASE_URL` unset in the frontend build.
+3. Serve the frontend and the API from **one origin**, so the admin session
+   cookie stays first-party. The Next.js web app already does this:
+   `next.config.ts` rewrites `/api/*` to `API_INTERNAL_URL`, so set
+   `API_INTERNAL_URL=https://<api-host>` on the web host and leave
+   `NEXT_PUBLIC_API_BASE_URL` unset. Next.js serves every page route itself, so
+   no SPA fallback rule is needed. The Docker Compose setup in the root README
+   wires this up for you.
 4. Run `npx prisma migrate deploy` against the production `DATABASE_URL` once
    (via the platform's shell/console, or a one-off deploy hook) before first use.
 5. Run `npm run prisma:seed` once against production to load initial products
-   and create the real admin user — then immediately log in to `/admin` and
-   change the password under Settings → Account. Alternatively, set
-   `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` before running the first
-   production seed. `seed.ts` upserts the admin with `update: {}`, so
-   re-seeding never changes an existing admin's password — re-seeding with a
-   new email creates a second admin and leaves `admin@example.com` /
-   `changeme123` live in production.
+   and create the real admin user. Under `NODE_ENV=production` the seed refuses
+   to run unless `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` are both set, so
+   the public default credentials never reach production. `seed.ts` upserts the
+   admin with `update: {}`, so re-seeding never changes an existing admin's
+   password; change it later under Settings → Account.
 6. In the Razorpay dashboard, configure the webhook URL to
    `https://<your-deployed-api>/api/orders/razorpay-webhook` and set the
    webhook secret to match `RAZORPAY_WEBHOOK_SECRET`.
@@ -71,9 +63,9 @@ cookies to cross-site `fetch` requests, so an admin frontend on a different
 site than the API would log in successfully and then get 401 on every admin
 request. Switching to `SameSite=None; Secure` would only work until the cookie
 is blocked as a third-party cookie (Safari already blocks these; Chrome is
-phasing them out). Serving `/api` from the frontend's own origin (the Vite
-proxy in dev, a host rewrite in production — see Deployment) keeps the cookie
-first-party everywhere.
+phasing them out). Serving `/api` from the frontend's own origin (the Next.js
+`/api` rewrite in `next.config.ts`, in dev and production — see Deployment)
+keeps the cookie first-party everywhere.
 
 Unhandled errors from async route handlers are forwarded to the terminal error
 handler by `asyncHandler` (and the Razorpay webhook has its own handling), so

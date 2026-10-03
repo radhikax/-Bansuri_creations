@@ -15,9 +15,8 @@ export default tseslint.config(
       'server/',
       '.claude/',
       '.superpowers/',
-      // Vendored shadcn/ui kit and Figma template, already excluded from coverage.
+      // Vendored shadcn/ui kit, already excluded from coverage.
       'src/components/ui/**',
-      'src/components/figma/**',
     ],
   },
   js.configs.recommended,
