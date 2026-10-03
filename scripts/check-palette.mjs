@@ -14,10 +14,22 @@ const SCAN_EXTENSIONS = new Set(['.ts', '.tsx', '.css']);
 const EXCLUDE_PREFIXES = [
   'src/styles/theme.css',
   'src/styles/palette.ts',
-  'src/components/ui/',
-  'src/components/figma/',
   'src/lib/api/schema.d.ts',
 ];
+
+// Known-benign fragments, removed from a line before it is scanned. Each is
+// scoped to one file so the rest of that file is still checked.
+const ALLOWED_FRAGMENTS = {
+  // Recharts draws its defaults with these strokes; the selectors restyle
+  // them into brand tokens, they never paint the colour.
+  'src/components/ui/chart.tsx': ["[stroke='#ccc']", "[stroke='#fff']"],
+  // Reads the sidebar's own theme variables, not a literal colour.
+  'src/components/ui/sidebar.tsx': ['hsl(var(--sidebar-border))', 'hsl(var(--sidebar-accent))'],
+};
+
+function stripAllowed(file, line) {
+  return (ALLOWED_FRAGMENTS[file] ?? []).reduce((acc, fragment) => acc.split(fragment).join(''), line);
+}
 
 function isExcluded(relPath) {
   if (/\.test\.[tj]sx?$/.test(relPath)) return true;
@@ -79,8 +91,9 @@ function main() {
     const content = readFileSync(path.join(rootDir, file), 'utf8');
     const lines = content.split('\n');
 
-    lines.forEach((line, index) => {
+    lines.forEach((rawLine, index) => {
       const lineNo = index + 1;
+      const line = stripAllowed(file, rawLine);
       const tokens = [
         ...findAll(UTILITY_RE, line),
         ...findAll(HEX_RE, line),

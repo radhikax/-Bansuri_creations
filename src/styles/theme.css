@@ -32,7 +32,7 @@
   --destructive: var(--maroon-800);
   --destructive-foreground: var(--beige-50);
   --border: var(--beige-300);
-  --input: var(--beige-300);
+  --input: var(--maroon-600);
   --input-background: var(--beige-200);
   --switch-background: var(--beige-300);
   --font-weight-medium: 500;
