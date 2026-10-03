@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { API_ORIGIN } from './env';
+import { API_ORIGIN, CHANGED_ADMIN_PASSWORD, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD } from './env';
 
 interface ApiVariant { price: number | null }
 interface ApiProduct { name: string; slug: string; basePrice: number; variants: ApiVariant[] }
@@ -77,6 +77,21 @@ async function expectSingleTranslucentOverlay(overlays: Locator) {
   expect(light).toBe(true);
 }
 
+/**
+ * Logs the page's browser context in through the API. Cookies ignore the port,
+ * so the admin_session cookie set by :4000 is sent to the admin UI too.
+ * admin.spec.ts may already have changed the seed password, so try both.
+ */
+async function logInAsAdmin(page: Page) {
+  for (const password of [SEED_ADMIN_PASSWORD, CHANGED_ADMIN_PASSWORD]) {
+    const res = await page.request.post(`${API_ORIGIN}/api/admin/login`, {
+      data: { email: SEED_ADMIN_EMAIL, password },
+    });
+    if (res.ok()) return;
+  }
+  throw new Error('Could not log in with either the seed or the changed admin password');
+}
+
 for (const viewport of VIEWPORTS) {
   test.describe(`visual @ ${viewport.label}`, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } });
@@ -135,6 +150,16 @@ for (const viewport of VIEWPORTS) {
       await page.goto('/admin/login');
       await expectNoHorizontalOverflow(page);
       await page.screenshot({ path: `test-results/visual/${viewport.label}-admin-login.png`, fullPage: true });
+    });
+
+    test('admin products, orders and settings fit the viewport', async ({ page }) => {
+      await logInAsAdmin(page);
+      for (const name of ['products', 'orders', 'settings']) {
+        await page.goto(`/admin/${name}`);
+        await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
+        await expectNoHorizontalOverflow(page);
+        await page.screenshot({ path: `test-results/visual/${viewport.label}-admin-${name}.png`, fullPage: true });
+      }
     });
   });
 }

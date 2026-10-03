@@ -13,8 +13,6 @@ const NAV_ITEMS: { to: string; label: string }[] = [
   { to: '/admin/settings', label: 'Settings' },
 ];
 
-// Task 8 replaces this `children` prop with Next.js's own nested layout
-// (a real `layout.tsx` wrapping file-system routes under /admin).
 export function AdminLayout({ children }: { children?: ReactNode } = {}) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -50,9 +48,11 @@ export function AdminLayout({ children }: { children?: ReactNode } = {}) {
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
         <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center gap-6">
+          {/* Wraps below lg: title and Log out share the first row, the nav
+              links drop to a second row so the header never scrolls sideways. */}
+          <div className="flex min-h-16 flex-wrap items-center gap-x-6 gap-y-2 py-3">
             <span className="text-lg">Bansuri Admin</span>
-            <nav className="flex items-center gap-6">
+            <nav className="order-last flex w-full flex-wrap items-center gap-x-4 gap-y-2 lg:order-none lg:w-auto lg:gap-x-6">
               {NAV_ITEMS.map((item) => (
                 <Link key={item.to} href={item.to} className="text-sm hover:text-primary transition-colors">
                   {item.label}
