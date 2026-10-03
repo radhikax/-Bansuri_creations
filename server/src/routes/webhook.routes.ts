@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { prisma } from '../db';
 import { verifyWebhookSignature } from '../services/razorpay';
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from '../services/email';
+import { revalidate } from '../services/revalidate';
+import { stockChangeTags } from '../services/cacheTags';
 
 export async function handleRazorpayWebhook(req: Request, res: Response): Promise<void> {
   const signature = req.headers['x-razorpay-signature'];
@@ -22,7 +24,10 @@ export async function handleRazorpayWebhook(req: Request, res: Response): Promis
     const razorpayOrderId = payload.payload.payment.entity.order_id;
     const razorpayPaymentId = payload.payload.payment.entity.id;
 
-    const order = await prisma.order.findUnique({ where: { razorpayOrderId }, include: { items: true } });
+    const order = await prisma.order.findUnique({
+      where: { razorpayOrderId },
+      include: { items: { include: { productVariant: { include: { product: true } } } } },
+    });
     if (!order || order.status !== 'PENDING') {
       res.status(200).json({ received: true });
       return;
@@ -49,6 +54,8 @@ export async function handleRazorpayWebhook(req: Request, res: Response): Promis
       res.status(200).json({ received: true });
       return;
     }
+
+    revalidate(stockChangeTags(order.items));
 
     const emailData = {
       orderNumber: order.orderNumber,

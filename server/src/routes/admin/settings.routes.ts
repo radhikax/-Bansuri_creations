@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../../db';
 import { requireAdminAuth } from '../../middleware/adminAuth';
 import { asyncHandler } from '../../middleware/asyncHandler';
+import { revalidate } from '../../services/revalidate';
 
 export const adminSettingsRouter = Router();
 adminSettingsRouter.use(requireAdminAuth);
@@ -16,7 +17,7 @@ adminSettingsRouter.get('/', asyncHandler(async (_req, res) => {
   res.json(settings);
 }));
 
-const settingsSchema = z.object({
+export const settingsSchema = z.object({
   flatShippingFee: z.number().int().min(0),
   freeShippingThreshold: z.number().int().min(0),
 });
@@ -31,5 +32,6 @@ adminSettingsRouter.put('/', asyncHandler(async (req, res) => {
     update: parsed.data,
     create: { id: 1, ...parsed.data },
   });
+  revalidate(['catalogue']);
   res.json(settings);
 }));

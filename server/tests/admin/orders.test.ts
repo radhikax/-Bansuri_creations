@@ -119,6 +119,54 @@ describe('admin orders routes', () => {
     expect(unchanged.status).toBe('PENDING');
   });
 
+  async function orderWithStatus(status: 'PENDING' | 'PAID' | 'CANCELLED') {
+    const variant = await prisma.productVariant.findFirstOrThrow({ where: { sku: 'DSD-001' } });
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: `ORD-T-${status}`, customerName: 'T', customerPhone: '1', customerEmail: 't@x.com',
+        addressStreet: 'x', addressCity: 'x', addressState: 'x', addressPincode: 'x',
+        subtotal: 998, shippingFee: 0, total: 998, status,
+        items: { create: [{ productVariantId: variant.id, productNameSnapshot: 'x', variantLabelSnapshot: 'x', unitPrice: 499, quantity: 2 }] },
+      },
+    });
+    return { order, variant };
+  }
+
+  it('rejects reopening a cancelled order, so it can never be restocked twice', async () => {
+    const agent = request.agent(app);
+    await loginAsAdmin(agent);
+    const { order, variant } = await orderWithStatus('CANCELLED');
+
+    const res = await agent.put(`/api/admin/orders/${order.id}/status`).send({ status: 'PROCESSING' });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/CANCELLED/);
+
+    expect((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe('CANCELLED');
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variant.id } })).stock).toBe(variant.stock);
+  });
+
+  it.each(['PROCESSING', 'SHIPPED', 'DELIVERED'] as const)(
+    'rejects moving an unpaid PENDING order to %s, leaving it for the payment webhook',
+    async (status) => {
+      const agent = request.agent(app);
+      await loginAsAdmin(agent);
+      const { order } = await orderWithStatus('PENDING');
+
+      const res = await agent.put(`/api/admin/orders/${order.id}/status`).send({ status });
+      expect(res.status).toBe(409);
+      expect((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe('PENDING');
+    },
+  );
+
+  it('still lets a paid order move between fulfilment statuses', async () => {
+    const agent = request.agent(app);
+    await loginAsAdmin(agent);
+    const { order } = await orderWithStatus('PAID');
+
+    expect((await agent.put(`/api/admin/orders/${order.id}/status`).send({ status: 'SHIPPED' })).status).toBe(200);
+    expect((await agent.put(`/api/admin/orders/${order.id}/status`).send({ status: 'PROCESSING' })).status).toBe(200);
+  });
+
   afterAll(async () => {
     await prisma.$disconnect();
   });

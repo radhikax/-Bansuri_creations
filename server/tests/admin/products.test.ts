@@ -39,7 +39,7 @@ describe('admin products routes', () => {
 
     const res = await agent.get('/api/admin/products');
     expect(res.status).toBe(200);
-    expect(res.body.some((p: any) => p.id === product.id)).toBe(true);
+    expect(res.body.some((p: { id: string }) => p.id === product.id)).toBe(true);
   });
 
   it('creates a product with variants', async () => {

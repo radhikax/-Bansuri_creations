@@ -2,80 +2,58 @@
 
 :root {
   --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #7c1d31;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #7c1d31;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --maroon-950: #2B0505;
+  --maroon-900: #3D0707;
+  --maroon-800: #5A0A0A;
+  --maroon-700: #741A1A;
+  --maroon-600: #8C3A35;
+  --maroon-200: #E6CFC8;
+  --maroon-100: #F3E4DF;
+  --beige-50: #FBF8F3;
+  --beige-100: #F4EEE4;
+  --beige-200: #EADFCF;
+  --beige-300: #DCCDB8;
+
+  --background: var(--beige-50);
+  --foreground: var(--maroon-900);
+  --card: var(--beige-100);
+  --card-foreground: var(--maroon-900);
+  --popover: var(--beige-100);
+  --popover-foreground: var(--maroon-900);
+  --primary: var(--maroon-800);
+  --primary-foreground: var(--beige-50);
+  --secondary: var(--beige-200);
+  --secondary-foreground: var(--maroon-900);
+  --muted: var(--beige-200);
+  --muted-foreground: var(--maroon-600);
+  --accent: var(--maroon-100);
+  --accent-foreground: var(--maroon-900);
+  --destructive: var(--maroon-800);
+  --destructive-foreground: var(--beige-50);
+  --border: var(--beige-300);
+  --input: var(--maroon-600);
+  --input-background: var(--beige-200);
+  --switch-background: var(--beige-300);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --font-serif: var(--font-heading), serif;
+  --font-sans: var(--font-body), sans-serif;
+  --ring: var(--maroon-800);
+  --chart-1: var(--maroon-800);
+  --chart-2: var(--maroon-600);
+  --chart-3: var(--maroon-200);
+  --chart-4: var(--beige-300);
+  --chart-5: var(--maroon-900);
+  --radius: 0.625rem;
+  --sidebar: var(--beige-100);
+  --sidebar-foreground: var(--maroon-900);
+  --sidebar-primary: var(--maroon-800);
+  --sidebar-primary-foreground: var(--beige-50);
+  --sidebar-accent: var(--beige-200);
+  --sidebar-accent-foreground: var(--maroon-900);
+  --sidebar-border: var(--beige-300);
+  --sidebar-ring: var(--maroon-800);
 }
 
 @theme inline {
@@ -93,6 +71,19 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-maroon-950: var(--maroon-950);
+  --color-maroon-900: var(--maroon-900);
+  --color-maroon-800: var(--maroon-800);
+  --color-maroon-700: var(--maroon-700);
+  --color-maroon-600: var(--maroon-600);
+  --color-maroon-200: var(--maroon-200);
+  --color-maroon-100: var(--maroon-100);
+  --color-beige-50: var(--beige-50);
+  --color-beige-100: var(--beige-100);
+  --color-beige-200: var(--beige-200);
+  --color-beige-300: var(--beige-300);
+  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -126,6 +117,7 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
   }
 
   /**
@@ -138,12 +130,14 @@
   }
 
   h1 {
+    font-family: var(--font-serif);
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   h2 {
+    font-family: var(--font-serif);
     font-size: var(--text-xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
@@ -177,5 +171,32 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--muted);
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(90deg, transparent, color-mix(in srgb, var(--beige-50) 55%, transparent), transparent);
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
   }
 }

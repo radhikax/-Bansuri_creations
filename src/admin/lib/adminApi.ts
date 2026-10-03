@@ -1,0 +1,166 @@
+import { browserApi } from '../../lib/api/client';
+import type { ApiCategory, ApiProduct, ApiProductVariant, RequestBodyOf, ResponseOf } from '../../lib/api';
+
+export type { ApiCategory, ApiProduct, ApiProductVariant };
+
+// Derived from the generated OpenAPI contract (see src/lib/api.ts), so a
+// backend change to any of these shapes fails typecheck here.
+export type AdminOrder = ResponseOf<'adminListOrders'>[number];
+export type AdminOrderItem = AdminOrder['items'][number];
+export type OrderStatus = AdminOrder['status'];
+export type AdminSettableOrderStatus = RequestBodyOf<'adminUpdateOrderStatus'>['status'];
+export type StoreSettings = ResponseOf<'adminGetSettings'>;
+export type AdminVariantInput = RequestBodyOf<'adminUpdateVariant'>;
+export type CreateProductInput = RequestBodyOf<'adminCreateProduct'>;
+export type UpdateProductInput = RequestBodyOf<'adminUpdateProduct'>;
+export type CategoryInput = RequestBodyOf<'adminCreateCategory'>;
+
+export class AdminUnauthorizedError extends Error {
+  constructor() {
+    super('Not authenticated');
+    this.name = 'AdminUnauthorizedError';
+  }
+}
+
+export class AdminApiError extends Error {
+  details?: unknown;
+  status?: number;
+  constructor(message: string, details?: unknown, status?: number) {
+    super(message);
+    this.name = 'AdminApiError';
+    this.details = details;
+    this.status = status;
+  }
+}
+
+interface AdminErrorBody {
+  error?: string;
+  details?: unknown;
+}
+
+// Unwraps an openapi-fetch `{ data, error, response }` result into the plain
+// value the exported functions resolve with, or throws. The value's type is
+// inferred from the contract's success response — no casts to a hand-written
+// shape. `browserApi` already sets `credentials: 'include'`, so the admin
+// cookie rides along as before.
+function unwrap<T>(
+  result: { data?: T; error?: unknown; response: Response },
+  path: string,
+  opts: { unauthorizedIsError?: boolean } = {},
+): T {
+  const { data, error, response } = result;
+
+  if (response.status === 401 && !opts.unauthorizedIsError) {
+    throw new AdminUnauthorizedError();
+  }
+  if (!response.ok) {
+    const body = (typeof error === 'object' && error !== null ? error : {}) as AdminErrorBody;
+    throw new AdminApiError(body.error ?? `Request to ${path} failed with status ${response.status}`, body.details, response.status);
+  }
+  // openapi-fetch leaves `data` undefined only for a non-OK or empty (204) response.
+  return data as T;
+}
+
+// Auth. adminLogin's 401 is a normal "wrong credentials" failure, not a session
+// expiry — it must not trigger the central redirect-to-login handling.
+export async function adminLogin(email: string, password: string): Promise<ResponseOf<'adminLogin'>> {
+  const result = await browserApi.POST('/api/admin/login', { body: { email, password } });
+  return unwrap(result, '/api/admin/login', { unauthorizedIsError: true });
+}
+
+export async function adminLogout(): Promise<ResponseOf<'adminLogout'>> {
+  const result = await browserApi.POST('/api/admin/logout');
+  return unwrap(result, '/api/admin/logout');
+}
+
+// A 401 with "Current password is incorrect" here means the current password
+// is wrong, not an expired session, so it must not trigger the central
+// redirect-to-login handling (same as adminLogin). Any other 401 (e.g. the
+// middleware's "Not authenticated" / "Invalid session" for a session revoked
+// by a password change elsewhere) is re-thrown as AdminUnauthorizedError so
+// that central handling still redirects to login.
+const WRONG_CURRENT_PASSWORD_MESSAGE = 'Current password is incorrect';
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  try {
+    const result = await browserApi.POST('/api/admin/password', { body: { currentPassword, newPassword } });
+    unwrap(result, '/api/admin/password', { unauthorizedIsError: true });
+  } catch (err) {
+    if (err instanceof AdminApiError && err.status === 401 && err.message !== WRONG_CURRENT_PASSWORD_MESSAGE) {
+      throw new AdminUnauthorizedError();
+    }
+    throw err;
+  }
+}
+
+// Settings
+export async function getStoreSettings(): Promise<StoreSettings> {
+  const result = await browserApi.GET('/api/admin/settings');
+  return unwrap(result, '/api/admin/settings');
+}
+
+export async function updateStoreSettings(data: { flatShippingFee: number; freeShippingThreshold: number }): Promise<StoreSettings> {
+  const result = await browserApi.PUT('/api/admin/settings', { body: data });
+  return unwrap(result, '/api/admin/settings');
+}
+
+// Products
+export async function getAdminProducts(): Promise<ApiProduct[]> {
+  const result = await browserApi.GET('/api/admin/products');
+  return unwrap(result, '/api/admin/products');
+}
+
+// The create/update responses are the bare product row — no `category` or
+// `variants` (the list endpoint is the one that includes them).
+export async function createAdminProduct(data: CreateProductInput): Promise<ResponseOf<'adminCreateProduct', 201>> {
+  const result = await browserApi.POST('/api/admin/products', { body: data });
+  return unwrap(result, '/api/admin/products');
+}
+
+export async function updateAdminProduct(id: string, data: UpdateProductInput): Promise<ResponseOf<'adminUpdateProduct'>> {
+  const result = await browserApi.PUT('/api/admin/products/{id}', { params: { path: { id } }, body: data });
+  return unwrap(result, `/api/admin/products/${id}`);
+}
+
+export async function updateAdminVariant(productId: string, variantId: string, data: AdminVariantInput): Promise<ApiProductVariant> {
+  const result = await browserApi.PUT('/api/admin/products/{id}/variants/{variantId}', {
+    params: { path: { id: productId, variantId } },
+    body: data,
+  });
+  return unwrap(result, `/api/admin/products/${productId}/variants/${variantId}`);
+}
+
+// Categories
+export async function getAdminCategories(): Promise<ApiCategory[]> {
+  const result = await browserApi.GET('/api/admin/categories');
+  return unwrap(result, '/api/admin/categories');
+}
+
+export async function createAdminCategory(data: CategoryInput): Promise<ApiCategory> {
+  const result = await browserApi.POST('/api/admin/categories', { body: data });
+  return unwrap(result, '/api/admin/categories');
+}
+
+export async function updateAdminCategory(id: string, data: Partial<CategoryInput>): Promise<ApiCategory> {
+  const result = await browserApi.PUT('/api/admin/categories/{id}', { params: { path: { id } }, body: data });
+  return unwrap(result, `/api/admin/categories/${id}`);
+}
+
+export async function deleteAdminCategory(id: string): Promise<void> {
+  const result = await browserApi.DELETE('/api/admin/categories/{id}', { params: { path: { id } } });
+  unwrap(result, `/api/admin/categories/${id}`);
+}
+
+// Orders
+export async function getAdminOrders(status?: OrderStatus): Promise<AdminOrder[]> {
+  const result = await browserApi.GET('/api/admin/orders', { params: { query: { status } } });
+  return unwrap(result, '/api/admin/orders');
+}
+
+export async function updateAdminOrderStatus(id: string, status: AdminSettableOrderStatus): Promise<AdminOrder> {
+  const result = await browserApi.PUT('/api/admin/orders/{id}/status', {
+    params: { path: { id } },
+    body: { status },
+  });
+  return unwrap(result, `/api/admin/orders/${id}/status`);
+}

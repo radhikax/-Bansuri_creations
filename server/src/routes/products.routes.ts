@@ -11,7 +11,7 @@ productsRouter.get('/', asyncHandler(async (req, res) => {
       isActive: true,
       ...(categorySlug ? { category: { slug: categorySlug } } : {}),
     },
-    include: { variants: true, category: true },
+    include: { variants: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }, category: true },
     orderBy: { name: 'asc' },
   });
   res.json(products);
@@ -20,7 +20,7 @@ productsRouter.get('/', asyncHandler(async (req, res) => {
 productsRouter.get('/:slug', asyncHandler(async (req, res) => {
   const product = await prisma.product.findUnique({
     where: { slug: req.params.slug },
-    include: { variants: true, category: true },
+    include: { variants: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }, category: true },
   });
   if (!product || !product.isActive) {
     return res.status(404).json({ error: 'Product not found' });
