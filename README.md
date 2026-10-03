@@ -22,8 +22,11 @@
   Run `npm run e2e`. It resets and re-seeds the separate `ecommerce_e2e`
   database, starts its own API on port 4000 (stop your dev API first — the run
   fails fast if the port is busy, so it can never touch `ecommerce_dev`), and
-  starts or reuses the Next.js dev server on port 5173. Failure screenshots and
-  traces land in `test-results/`.
+  builds and starts the production Next.js server (`next build && next start`)
+  on port 5173. It never reuses a server already running there, so stop your
+  dev server first too. Failure screenshots and traces land in
+  `test-results/`, and the layout screenshots for every viewport in
+  `test-results/visual/`.
 
   ## API contract
 
@@ -44,10 +47,10 @@
 
   | Job | What it proves |
   |---|---|
-  | Quality | ESLint (web + API, zero warnings), `tsc` type-checks, `npm audit` gate on production deps (high+) |
+  | Quality | ESLint (web + API, zero warnings), brand palette check (`scripts/check-palette.mjs`), OpenAPI drift check, `tsc` type-checks, `npm audit` gate on production deps (high+) |
   | Frontend | Vitest unit tests, production build |
   | Backend | Migrations on a fresh Postgres 16, Vitest suites |
-  | Browser tests | Playwright + Chromium end-to-end (screenshots/traces uploaded on failure) |
+  | Browser tests | Playwright + Chromium end-to-end. Always uploads the `visual-screenshots` artifact (every page at 390, 768 and 1366 px) for the owner to review; traces are uploaded on failure |
   | Docker | Builds both images — the web image is a Next.js standalone server (port 8080) — Trivy scan (fixable HIGH/CRITICAL fail), smoke-tests the full compose stack |
   | ci-success | One check that is green only if all of the above are — require it in branch protection |
   | Publish images | Only on `main` / `v*` tags: pushes `ghcr.io/radhikax/bansuri-api` and `bansuri-web` |
@@ -58,15 +61,25 @@
 
   ## Running the production stack
 
-  1. `cp .env.production.example .env.production` and fill it in (never commit it).
-     This includes `REVALIDATE_SECRET` (shared between `api` and `web`, so the API
-     can tell the web container to refresh a page after an edit), `WEB_INTERNAL_URL`
-     (`http://web:8080`, how the API reaches the web container), and `SITE_URL`
-     (the public shop URL). `SITE_URL` is read at runtime, not baked into the
-     image, so setting it in the env file is enough — it takes effect on the
-     published GHCR image with no rebuild. `NEXT_PUBLIC_SITE_URL` is only a
+  1. Create the two env files and fill them in (never commit either):
+     - `cp .env.api.example .env.api`: Postgres, database URL, JWT, Razorpay and
+       email settings, read by the `postgres`, `migrate` and `api` services.
+     - `cp .env.web.example .env.web`: only what the web container needs. It's the
+       internet-facing container, so it never receives the API's secrets.
+
+     `REVALIDATE_SECRET` goes in **both** files with the same value (the API sends
+     it when it asks the web container to refresh a page after an edit; the web
+     container rejects any other value). `.env.api` also sets `WEB_INTERNAL_URL`
+     (`http://web:8080`, how the API reaches the web container), and `.env.web`
+     sets `SITE_URL` (the public shop URL). `SITE_URL` is read at runtime, not
+     baked into the image, so setting it in `.env.web` is enough — it takes effect
+     on the published GHCR image with no rebuild. `NEXT_PUBLIC_SITE_URL` is only a
      build-time fallback for a local `docker compose build`; when both are set,
      `SITE_URL` always wins at runtime.
+
+     Upgrading from a single `.env.production`: move the `--- Web ---` lines into
+     `.env.web`, copy `REVALIDATE_SECRET` into it, and rename the rest to
+     `.env.api`. (`API_ENV_FILE` / `WEB_ENV_FILE` override the file names.)
   2. `docker compose -f docker-compose.prod.yml up -d` pulls the published images
      (add `--build` to build locally). The `migrate` service applies migrations
      before `api` starts; the shop is on http://localhost:8080.
@@ -87,7 +100,7 @@
 
      docker run --rm --network bansuri_default \
        -v "$PWD/server:/app" -v /app/node_modules \
-       -w /app --env-file .env.production \
+       -w /app --env-file .env.api \
        -e NODE_ENV=development \
        -e SEED_ADMIN_EMAIL -e SEED_ADMIN_PASSWORD \
        node:24-bookworm-slim sh -c "npm ci --include=dev && npx prisma generate && npx tsx prisma/seed.ts"
@@ -100,7 +113,7 @@
        get replaced with Linux native builds, e.g. `bcrypt`, breaking local
        `npm run dev` / `npm test` afterward).
      - `-e NODE_ENV=development` overrides the `NODE_ENV=production` that
-       `--env-file .env.production` would otherwise load. It's needed so `npm ci
+       `--env-file .env.api` would otherwise load. It's needed so `npm ci
        --include=dev` installs devDependencies — including `tsx`, which runs the
        seed script — since npm skips them under `NODE_ENV=production`. The seed
        script itself only refuses the default admin credentials when
@@ -108,7 +121,7 @@
        `NODE_ENV=development`, that script-level guard does **not** apply here — the
        `:?` guards above are what actually require `SEED_ADMIN_EMAIL` and
        `SEED_ADMIN_PASSWORD` to be set in this flow.
-     - No `DATABASE_URL` override is needed or passed; `--env-file .env.production`
+     - No `DATABASE_URL` override is needed or passed; `--env-file .env.api`
        already supplies the correct one.
 
      The seed is idempotent (re-running it never changes an existing admin's

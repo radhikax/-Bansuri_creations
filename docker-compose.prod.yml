@@ -1,11 +1,13 @@
-# Production stack. Configuration comes from ${ENV_FILE:-.env.production}
-# (copy .env.production.example). Images default to GHCR; `--build` builds locally.
+# Production stack. postgres, migrate and api read ${API_ENV_FILE:-.env.api}
+# (copy .env.api.example); web reads only ${WEB_ENV_FILE:-.env.web} (copy
+# .env.web.example), so the internet-facing container never holds API secrets.
+# Images default to GHCR; `--build` builds locally.
 name: bansuri
 
 services:
   postgres:
     image: postgres:16-alpine
-    env_file: ${ENV_FILE:-.env.production}
+    env_file: ${API_ENV_FILE:-.env.api}
     volumes:
       - pgdata-prod:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +20,7 @@ services:
   migrate:
     image: ${API_IMAGE:-ghcr.io/radhikax/bansuri-api:latest}
     build: ./server
-    env_file: ${ENV_FILE:-.env.production}
+    env_file: ${API_ENV_FILE:-.env.api}
     command: ["./node_modules/.bin/prisma", "migrate", "deploy"]
     depends_on:
       postgres:
@@ -28,7 +30,7 @@ services:
   api:
     image: ${API_IMAGE:-ghcr.io/radhikax/bansuri-api:latest}
     build: ./server
-    env_file: ${ENV_FILE:-.env.production}
+    env_file: ${API_ENV_FILE:-.env.api}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -41,11 +43,11 @@ services:
       args:
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:8080}
         API_INTERNAL_URL: http://api:4000
-    env_file: ${ENV_FILE:-.env.production}
+    env_file: ${WEB_ENV_FILE:-.env.web}
     environment:
       API_INTERNAL_URL: http://api:4000
-      # The shared env file sets PORT=4000 for the API; environment wins over
-      # env_file, so pin the web server to its own port and interface here.
+      # Pin the web server's port and interface here rather than in .env.web,
+      # so a PORT copied over from .env.api can't move it.
       PORT: "8080"
       HOSTNAME: 0.0.0.0
     ports:

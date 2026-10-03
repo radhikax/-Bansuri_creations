@@ -16,5 +16,6 @@ src/test
 .env
 .env.*
 !.env.example
-!.env.production.example
+!.env.api.example
+!.env.web.example
 *.log
