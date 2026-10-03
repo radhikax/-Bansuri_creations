@@ -11,7 +11,7 @@ const REVALIDATE_SECONDS = 300;
 const CATALOGUE_TAG = 'catalogue';
 // Every product-list read (home and category pages) also carries this tag, so
 // a sale can refresh list stock without expiring every cached page the way
-// 'catalogue' would. Must match server/src/routes/webhook.routes.ts.
+// 'catalogue' would. Must match PRODUCT_LIST_TAG in server/src/services/cacheTags.ts.
 export const PRODUCT_LIST_TAG = 'product-list';
 
 export async function getCategories(): Promise<AdaptedCategory[]> {

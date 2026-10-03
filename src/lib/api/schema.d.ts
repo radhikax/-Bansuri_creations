@@ -1543,6 +1543,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description Status change not allowed (a CANCELLED order is final; an unpaid PENDING order can only be cancelled) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        details?: unknown;
+                    };
+                };
+            };
         };
     };
     getHealth: {

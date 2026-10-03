@@ -4,6 +4,7 @@ import { prisma } from '../../db';
 import { requireAdminAuth } from '../../middleware/adminAuth';
 import { asyncHandler } from '../../middleware/asyncHandler';
 import { revalidate } from '../../services/revalidate';
+import { stockChangeTags } from '../../services/cacheTags';
 
 export const adminOrdersRouter = Router();
 adminOrdersRouter.use(requireAdminAuth);
@@ -17,6 +18,16 @@ const adminSettableStatusValues = ['PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCEL
 // Stock is decremented exactly once, by the webhook on PENDING -> PAID. Only orders
 // that already passed through that transition may be restocked when cancelled.
 const restockableStatuses: readonly string[] = ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+
+// Which admin changes each status allows. CANCELLED is final: reopening it would
+// let a second cancel restock the same units again. An unpaid PENDING order can
+// only be cancelled; moving it on would hide it from the webhook, which claims
+// orders by status=PENDING, so a later payment would never be recorded.
+function transitionError(from: OrderStatus, to: string): string | null {
+  if (from === 'CANCELLED') return 'A CANCELLED order cannot be changed';
+  if (from === 'PENDING' && to !== 'CANCELLED') return 'An unpaid PENDING order can only be cancelled';
+  return null;
+}
 
 adminOrdersRouter.get('/', asyncHandler(async (req, res) => {
   const status = typeof req.query.status === 'string' ? req.query.status : undefined;
@@ -44,6 +55,11 @@ adminOrdersRouter.put('/:id/status', asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Order not found' });
   }
 
+  const rejected = transitionError(order.status, parsed.data.status);
+  if (rejected) {
+    return res.status(409).json({ error: rejected });
+  }
+
   const shouldRestock =
     parsed.data.status === 'CANCELLED' && restockableStatuses.includes(order.status);
 
@@ -67,10 +83,7 @@ adminOrdersRouter.put('/:id/status', asyncHandler(async (req, res) => {
   });
 
   if (restocked) {
-    // Same tags as the webhook's sale: cached product pages and cards would
-    // otherwise keep showing the restocked item as sold out for up to 5 minutes.
-    const productSlugs = new Set(order.items.map((item) => item.productVariant.product.slug));
-    revalidate(['product-list', ...Array.from(productSlugs, (slug) => `product:${slug}`)]);
+    revalidate(stockChangeTags(order.items));
   }
 
   const updated = await prisma.order.findUniqueOrThrow({ where: { id: order.id }, include: { items: true } });

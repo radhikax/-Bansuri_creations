@@ -3,6 +3,7 @@ import { prisma } from '../db';
 import { verifyWebhookSignature } from '../services/razorpay';
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from '../services/email';
 import { revalidate } from '../services/revalidate';
+import { stockChangeTags } from '../services/cacheTags';
 
 export async function handleRazorpayWebhook(req: Request, res: Response): Promise<void> {
   const signature = req.headers['x-razorpay-signature'];
@@ -54,10 +55,7 @@ export async function handleRazorpayWebhook(req: Request, res: Response): Promis
       return;
     }
 
-    const productSlugs = new Set(order.items.map((item) => item.productVariant.product.slug));
-    // 'product-list' too: home and category cards have no live-stock check, so
-    // without it they keep offering a just-sold-out item for up to 5 minutes.
-    revalidate(['product-list', ...Array.from(productSlugs, (slug) => `product:${slug}`)]);
+    revalidate(stockChangeTags(order.items));
 
     const emailData = {
       orderNumber: order.orderNumber,

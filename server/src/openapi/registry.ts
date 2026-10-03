@@ -434,6 +434,7 @@ export function buildOpenApiDocument(): OpenAPIObject {
       400: badRequest,
       401: unauthorized,
       404: jsonError('Order not found'),
+      409: jsonError('Status change not allowed (a CANCELLED order is final; an unpaid PENDING order can only be cancelled)'),
     },
   });
 

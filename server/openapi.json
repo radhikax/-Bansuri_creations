@@ -2895,6 +2895,25 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Status change not allowed (a CANCELLED order is final; an unpaid PENDING order can only be cancelled)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
           }
         }
       }
