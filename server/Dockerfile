@@ -1,7 +1,10 @@
 # syntax=docker/dockerfile:1
 
 FROM node:24-bookworm-slim AS base
+# upgrade pulls Debian security fixes newer than the base image (as the web
+# image does), so the Trivy gate doesn't fail on already-fixed OS packages.
 RUN apt-get update \
+ && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends openssl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app

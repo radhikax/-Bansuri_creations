@@ -38,7 +38,8 @@ describe('app/(shop)/layout', () => {
 
     // No category links, but the header, main content and footer still render.
     expect(screen.queryByRole('link', { name: /diwali decor/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument();
+    // The header renders one Home link per layout (inline from lg, small-screen bar below).
+    expect(screen.getAllByRole('link', { name: 'Home' }).length).toBeGreaterThan(0);
     expect(screen.getByText('page content')).toBeInTheDocument();
   });
 });
