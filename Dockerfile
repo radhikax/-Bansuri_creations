@@ -23,7 +23,9 @@ WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=8080 HOSTNAME=0.0.0.0
 # The published node:24-bookworm-slim base can lag Debian's security fixes; pull
 # them in before dropping to the unprivileged user (Trivy fails the CI build on
-# fixable HIGH/CRITICAL findings).
+# fixable HIGH/CRITICAL findings). CI passes today's date: a new value re-runs
+# this layer instead of reusing a cached one from before the latest fixes.
+ARG OS_UPDATES_DATE
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static

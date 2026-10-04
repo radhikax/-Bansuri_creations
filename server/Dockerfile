@@ -3,6 +3,9 @@
 FROM node:24-bookworm-slim AS base
 # upgrade pulls Debian security fixes newer than the base image (as the web
 # image does), so the Trivy gate doesn't fail on already-fixed OS packages.
+# CI passes today's date: a new value re-runs this layer instead of reusing a
+# cached one from before the latest fixes were published.
+ARG OS_UPDATES_DATE
 RUN apt-get update \
  && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends openssl ca-certificates \
