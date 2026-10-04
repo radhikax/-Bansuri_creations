@@ -48,19 +48,32 @@ describe('Header', () => {
 
   it('shows only Home while categories are loading', () => {
     renderHeader([]);
-    expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument();
+    // One Home link per layout (inline from lg, small-screen bar below); CSS shows one.
+    expect(screen.getAllByRole('link', { name: 'Home' })).toHaveLength(2);
     expect(screen.queryByRole('link', { name: 'Diwali Decor' })).not.toBeInTheDocument();
   });
 
-  it('opens a phone menu with the category links and closes it after a tap', async () => {
+  it('has no slide-in side menu', () => {
+    renderHeader();
+    expect(screen.queryByRole('button', { name: 'Open menu' })).not.toBeInTheDocument();
+  });
+
+  it('opens a Categories dropdown from the top bar and closes it after a pick', async () => {
     const user = userEvent.setup();
     renderHeader();
-    await user.click(screen.getByRole('button', { name: 'Open menu' }));
-    const menu = await screen.findByRole('dialog', { name: 'Menu' });
-    const link = within(menu).getByRole('link', { name: 'Customized Gifting' });
+    await user.click(screen.getByRole('button', { name: 'Categories' }));
+    const menu = await screen.findByRole('menu');
+    const items = within(menu).getAllByRole('menuitem');
+    expect(items.map((item) => item.textContent)).toEqual(['Diwali Decor', 'Customized Gifting']);
+    const link = within(menu).getByRole('menuitem', { name: 'Customized Gifting' });
     expect(link).toHaveAttribute('href', '/category/customized-gifting');
     await user.click(link);
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+  });
+
+  it('leaves out the Categories dropdown while categories are loading', () => {
+    renderHeader([]);
+    expect(screen.queryByRole('button', { name: 'Categories' })).not.toBeInTheDocument();
   });
 
   it('hides the count badge when the cart is empty', () => {

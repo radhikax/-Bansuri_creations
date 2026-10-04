@@ -46,16 +46,17 @@ test('images are resized and the home page stays under 5 MB of images', async ({
 test.describe('phone', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('the menu drawer navigates to a category', async ({ page, request }) => {
+  test('the top bar Categories dropdown navigates to a category', async ({ page, request }) => {
     const refWarnings = watchRefWarnings(page);
     const categories = (await (await request.get(`${API_ORIGIN}/api/categories`)).json()) as ApiCategory[];
     const target = categories[0];
 
     await page.goto('/');
-    await page.getByRole('button', { name: 'Open menu' }).click();
-    const menu = page.getByRole('dialog', { name: 'Menu' });
+    await expect(page.getByRole('button', { name: 'Open menu' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Categories' }).click();
+    const menu = page.getByRole('menu');
     await expect(menu).toBeVisible();
-    await menu.getByRole('link', { name: target.name, exact: true }).click();
+    await menu.getByRole('menuitem', { name: target.name, exact: true }).click();
 
     await expect(page).toHaveURL(`/category/${target.slug}`);
     await expect(page.getByRole('heading', { level: 1, name: target.name })).toBeVisible();

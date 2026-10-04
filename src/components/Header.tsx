@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Menu, ShoppingCart } from 'lucide-react';
+import { ChevronDown, ShoppingCart } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import logo from '../assets/933b21dd0e7f43328405b2f83783e6907d3d0236.png';
 import { CART_ICON_ATTR } from '../lib/flyToCart';
 import type { AdaptedCategory } from '../lib/adapters';
@@ -18,7 +17,6 @@ interface HeaderProps {
 }
 
 export function Header({ categories }: HeaderProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const { count, open } = useCart();
   const navLinks = [
     { to: '/', label: 'Home' },
@@ -29,44 +27,45 @@ export function Header({ categories }: HeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {/* Phone menu */}
-            <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left">
-                <SheetHeader>
-                  <SheetTitle>Menu</SheetTitle>
-                </SheetHeader>
-                <nav className="flex flex-col gap-1 px-4">
-                  {navLinks.map((link) => (
-                    <SheetClose asChild key={link.to}>
-                      <Link href={link.to} className="rounded-md px-2 py-2 text-base hover:bg-accent hover:text-primary transition-colors">
-                        {link.label}
-                      </Link>
-                    </SheetClose>
-                  ))}
-                </nav>
-              </SheetContent>
-            </Sheet>
+          {/* Logo */}
+          <Link href="/" className="flex shrink-0 items-center gap-3">
+            <Image src={logo} alt="Bansuri Creations" className="h-12 w-12 object-contain" />
+            {/* The name is in the logo image too; the text needs room only from sm up. */}
+            <span className="hidden text-xl sm:inline">Bansuri Creations</span>
+          </Link>
 
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-3">
-              <Image src={logo} alt="Bansuri Creations" className="h-12 w-12 object-contain" />
-              <span className="text-xl">Bansuri Creations</span>
-            </Link>
-          </div>
-
-          {/* Navigation */}
+          {/* Navigation: every link inline from lg; below that, Home plus a
+              Categories dropdown that opens down from this same top bar. */}
           <nav className="hidden lg:flex items-center gap-6">
             {navLinks.map((link) => (
               <Link key={link.to} href={link.to} className="text-sm hover:text-primary transition-colors">
                 {link.label}
               </Link>
             ))}
+          </nav>
+          <nav className="flex items-center gap-1 lg:hidden">
+            <Link href="/" className="rounded-md px-2 py-2 text-sm hover:text-primary transition-colors">
+              Home
+            </Link>
+            {categories.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="gap-1 px-2 text-sm font-normal">
+                    Categories
+                    <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-48">
+                  {categories.map((c) => (
+                    <DropdownMenuItem key={c.slug} asChild>
+                      <Link href={`/category/${c.slug}`} className="text-base">
+                        {c.title}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </nav>
 
           {/* Cart Button */}
