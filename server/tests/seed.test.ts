@@ -31,6 +31,22 @@ describe('seedDatabase', () => {
     expect(await prisma.adminUser.count()).toBe(1);
   });
 
+  it('requests a resized Unsplash image, never the multi-megabyte original', async () => {
+    // The image optimizer gives up on an upstream fetch after 7s, and an
+    // Unsplash original (~9 MB) takes about that long, so the page shows 504s.
+    await seedDatabase(prisma);
+    const categories = await prisma.category.findMany();
+    const products = await prisma.product.findMany();
+    const urls = [
+      ...categories.map((c) => c.imageUrl),
+      ...products.flatMap((p) => [p.imageUrl, ...p.images]),
+    ].filter((url) => url.startsWith('https://images.unsplash.com/'));
+
+    expect(urls.length).toBeGreaterThan(0);
+    const unsized = urls.filter((url) => !new URL(url).searchParams.has('w'));
+    expect(unsized).toEqual([]);
+  });
+
   it('is idempotent when run twice', async () => {
     await seedDatabase(prisma);
     await seedDatabase(prisma);
