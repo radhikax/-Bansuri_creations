@@ -27,7 +27,7 @@
     "express": "4.22.3",
     "express-rate-limit": "^8.7.0",
     "jsonwebtoken": "9.0.2",
-    "prisma": "5.20.0",
+    "prisma": "7.10.0",
     "razorpay": "2.9.4",
     "resend": "4.0.1",
     "swagger-ui-express": "5.0.1",
