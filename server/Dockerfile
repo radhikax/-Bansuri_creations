@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-bookworm-slim AS base
+FROM node:26-bookworm-slim AS base
 # upgrade pulls Debian security fixes newer than the base image (as the web
 # image does), so the Trivy gate doesn't fail on already-fixed OS packages.
 # CI passes today's date: a new value re-runs this layer instead of reusing a
