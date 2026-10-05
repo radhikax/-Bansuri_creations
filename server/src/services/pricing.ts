@@ -9,7 +9,7 @@ export interface VariantForPricing {
   id: string;
   price: number | null;
   stock: number;
-  product: { basePrice: number };
+  product: { basePrice: number; isActive: boolean };
 }
 
 export function resolveUnitPrice(variant: VariantForPricing): number {
@@ -17,13 +17,20 @@ export function resolveUnitPrice(variant: VariantForPricing): number {
 }
 
 export function validateStock(items: CartItemInput[], variants: VariantForPricing[]): void {
+  // Sum requested quantity per variant first: the same variant can appear on more than one
+  // line, and checking each line against stock independently would let the total oversell.
+  const requestedByVariant = new Map<string, number>();
   for (const item of items) {
-    const variant = variants.find((v) => v.id === item.variantId);
-    if (!variant) {
-      throw new OrderValidationError(`Item ${item.variantId} is no longer available`);
+    requestedByVariant.set(item.variantId, (requestedByVariant.get(item.variantId) ?? 0) + item.quantity);
+  }
+
+  for (const [variantId, quantity] of requestedByVariant) {
+    const variant = variants.find((v) => v.id === variantId);
+    if (!variant || !variant.product.isActive) {
+      throw new OrderValidationError(`Item ${variantId} is no longer available`);
     }
-    if (variant.stock < item.quantity) {
-      throw new OrderValidationError(`Insufficient stock for item ${item.variantId}`);
+    if (variant.stock < quantity) {
+      throw new OrderValidationError(`Insufficient stock for item ${variantId}`);
     }
   }
 }

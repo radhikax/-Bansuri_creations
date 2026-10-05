@@ -3,11 +3,17 @@ import { z } from 'zod';
 import { prisma } from '../../db';
 import { requireAdminAuth } from '../../middleware/adminAuth';
 import { asyncHandler } from '../../middleware/asyncHandler';
+import { revalidate } from '../../services/revalidate';
 
 export const adminCategoriesRouter = Router();
 adminCategoriesRouter.use(requireAdminAuth);
 
-const categorySchema = z.object({
+adminCategoriesRouter.get('/', asyncHandler(async (_req, res) => {
+  const categories = await prisma.category.findMany({ orderBy: { name: 'asc' } });
+  res.json(categories);
+}));
+
+export const categorySchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   description: z.string().min(1),
@@ -21,6 +27,7 @@ adminCategoriesRouter.post('/', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid category payload', details: parsed.error.flatten() });
   }
   const category = await prisma.category.create({ data: parsed.data });
+  revalidate(['catalogue', `category:${category.slug}`]);
   res.status(201).json(category);
 }));
 
@@ -30,10 +37,12 @@ adminCategoriesRouter.put('/:id', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid category payload', details: parsed.error.flatten() });
   }
   const category = await prisma.category.update({ where: { id: req.params.id }, data: parsed.data });
+  revalidate(['catalogue', `category:${category.slug}`]);
   res.json(category);
 }));
 
 adminCategoriesRouter.delete('/:id', asyncHandler(async (req, res) => {
-  await prisma.category.delete({ where: { id: req.params.id } });
+  const category = await prisma.category.delete({ where: { id: req.params.id } });
+  revalidate(['catalogue', `category:${category.slug}`]);
   res.status(204).send();
 }));

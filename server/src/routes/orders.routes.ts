@@ -5,10 +5,11 @@ import { validateStock, computeOrderTotals, resolveUnitPrice, OrderValidationErr
 import { generateOrderNumber } from '../services/orderNumber';
 import { createRazorpayOrder } from '../services/razorpay';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { getShippingConfig } from '../services/shippingConfig';
 
 export const ordersRouter = Router();
 
-const checkoutSchema = z.object({
+export const checkoutSchema = z.object({
   customerName: z.string().min(1),
   customerPhone: z.string().min(6),
   customerEmail: z.string().email(),
@@ -35,10 +36,7 @@ ordersRouter.post('/', asyncHandler(async (req, res) => {
 
       validateStock(data.items, variants);
 
-      const settings = (await tx.storeSettings.findUnique({ where: { id: 1 } })) ?? {
-        flatShippingFee: 50,
-        freeShippingThreshold: 999,
-      };
+      const settings = await getShippingConfig(tx);
       const totals = computeOrderTotals(data.items, variants, settings);
       const orderNumber = generateOrderNumber();
 

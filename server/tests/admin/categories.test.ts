@@ -19,6 +19,27 @@ describe('admin categories routes', () => {
     await prisma.adminUser.deleteMany();
   });
 
+  it('lists all categories for a logged-in admin, ordered by name', async () => {
+    const agent = request.agent(app);
+    await loginAsAdmin(agent);
+
+    await prisma.category.createMany({
+      data: [
+        { name: 'Zebra', slug: 'zebra', description: 'd', imageUrl: 'u', icon: '🦓' },
+        { name: 'Apple', slug: 'apple', description: 'd', imageUrl: 'u', icon: '🍎' },
+      ],
+    });
+
+    const res = await agent.get('/api/admin/categories');
+    expect(res.status).toBe(200);
+    expect(res.body.map((c: { name: string }) => c.name)).toEqual(['Apple', 'Zebra']);
+  });
+
+  it('rejects an unauthenticated request to list categories', async () => {
+    const res = await request(app).get('/api/admin/categories');
+    expect(res.status).toBe(401);
+  });
+
   it('creates, updates, and deletes a category', async () => {
     const agent = request.agent(app);
     await loginAsAdmin(agent);
