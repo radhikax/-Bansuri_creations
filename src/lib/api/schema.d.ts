@@ -727,6 +727,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description Too many failed login attempts for this account; try again in 15 minutes */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        details?: unknown;
+                    };
+                };
+            };
         };
     };
     adminLogout: {
@@ -792,6 +804,18 @@ export interface operations {
             };
             /** @description Current password is incorrect, or not authenticated */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        details?: unknown;
+                    };
+                };
+            };
+            /** @description Too many failed password attempts; try again in 15 minutes */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -989,6 +989,25 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many failed login attempts for this account; try again in 15 minutes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -1093,6 +1112,25 @@
           },
           "401": {
             "description": "Current password is incorrect, or not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many failed password attempts; try again in 15 minutes",
             "content": {
               "application/json": {
                 "schema": {

@@ -182,6 +182,7 @@ export function buildOpenApiDocument(): OpenAPIObject {
       },
       400: jsonError('Email and password required'),
       401: jsonError('Invalid credentials'),
+      429: jsonError('Too many failed login attempts for this account; try again in 15 minutes'),
     },
   });
 
@@ -214,6 +215,7 @@ export function buildOpenApiDocument(): OpenAPIObject {
       },
       400: jsonError('Invalid payload, or new password too weak / unchanged'),
       401: jsonError('Current password is incorrect, or not authenticated'),
+      429: jsonError('Too many failed password attempts; try again in 15 minutes'),
     },
   });
 

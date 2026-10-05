@@ -50,6 +50,19 @@ describe('POST /api/admin/password', () => {
     expect(res.body).toEqual({ error: 'New password must be different from the current password' });
   });
 
+  it('blocks password changes after 10 wrong current passwords in the window', async () => {
+    const agent = request.agent(app);
+    await loginAsAdmin(agent);
+    for (let i = 0; i < 10; i++) {
+      const res = await agent.post('/api/admin/password').send({ currentPassword: 'wrong', newPassword: NEW_PASSWORD });
+      expect(res.status).toBe(401);
+    }
+
+    const blocked = await agent.post('/api/admin/password').send({ currentPassword: 'pw', newPassword: NEW_PASSWORD });
+    expect(blocked.status).toBe(429);
+    expect(blocked.body).toEqual({ error: 'Too many password attempts. Try again in 15 minutes.' });
+  });
+
   it('rejects a wrong current password', async () => {
     const agent = request.agent(app);
     await loginAsAdmin(agent);

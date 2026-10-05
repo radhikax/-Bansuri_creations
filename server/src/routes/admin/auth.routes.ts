@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
+import { rateLimit } from 'express-rate-limit';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { prisma } from '../../db';
@@ -10,12 +11,43 @@ export const adminAuthRouter = Router();
 
 const MIN_PASSWORD_LENGTH = 8;
 
+// Brute-force limits, keyed per account rather than per IP: requests reach the
+// API through the Next.js server, which doesn't forward the client's address,
+// so every visitor would share one IP (and X-Forwarded-For can be spoofed).
+// Only failed attempts count. The cost: someone who knows the admin email can
+// lock that account out for one window, which beats unlimited guessing.
+const FAILED_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
+const MAX_FAILED_ATTEMPTS = 10;
+
+function failedAttemptLimiter(key: (req: Request) => string, error: string) {
+  return rateLimit({
+    windowMs: FAILED_ATTEMPT_WINDOW_MS,
+    limit: MAX_FAILED_ATTEMPTS,
+    skipSuccessfulRequests: true,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    keyGenerator: key,
+    handler: (_req, res) => res.status(429).json({ error }),
+  });
+}
+
+const loginLimiter = failedAttemptLimiter(
+  (req) => `login:${String((req.body as { email?: unknown })?.email ?? '').trim().toLowerCase()}`,
+  'Too many login attempts. Try again in 15 minutes.',
+);
+
+// Runs after requireAdminAuth, so adminId is set.
+const passwordLimiter = failedAttemptLimiter(
+  (req) => `password:${(req as AdminRequest).adminId}`,
+  'Too many password attempts. Try again in 15 minutes.',
+);
+
 export const changePasswordSchema = z.object({
   currentPassword: z.string(),
   newPassword: z.string(),
 });
 
-adminAuthRouter.post('/login', asyncHandler(async (req, res) => {
+adminAuthRouter.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string };
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
@@ -35,7 +67,7 @@ adminAuthRouter.post('/logout', (_req, res) => {
   res.json({ success: true });
 });
 
-adminAuthRouter.post('/password', requireAdminAuth, asyncHandler(async (req, res) => {
+adminAuthRouter.post('/password', requireAdminAuth, passwordLimiter, asyncHandler(async (req, res) => {
   const parsed = changePasswordSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid payload' });
